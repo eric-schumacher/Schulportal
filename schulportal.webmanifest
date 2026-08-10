@@ -1,0 +1,16 @@
+{
+  "name": "Schulportal",
+  "short_name": "Schulportal",
+  "start_url": "lehrer-notenbuch.html",
+  "display": "standalone",
+  "theme_color": "#e5f6eb",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "schulportal-app-icon-transparent-square.png",
+      "sizes": "736x736",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
