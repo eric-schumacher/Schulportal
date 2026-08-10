@@ -1660,6 +1660,24 @@
       border-bottom: 0;
     }
 
+    .daily-overview-item-button {
+      width: 100%;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      border-radius: 8px;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .daily-overview-item-button:hover,
+    .daily-overview-item-button:focus-visible {
+      background: var(--accent-soft);
+      outline: none;
+    }
+
     @media (max-width: 760px) {
       .daily-overview-grid {
         grid-template-columns: 1fr;
@@ -3134,11 +3152,8 @@
   </div>
   <div class="app">
     <header class="topbar">
-      <button type="button" class="daily-overview-trigger" id="openDailyOverviewBtn" title="Tagesübersicht öffnen" aria-label="Tagesübersicht öffnen">
-        <img src="schulportal-app-icon-transparent-square.png" alt="">
-      </button>
       <div class="brand">
-        <button type="button" class="brand-home" id="homeLogo" title="Zur Kursübersicht">
+        <button type="button" class="brand-home" id="homeLogo" title="Tagesübersicht öffnen" aria-label="Tagesübersicht öffnen">
           <img class="brand-logo-full" src="schulportal-logo-home.png" alt="Schulportal">
         </button>
         <span id="todayLabel"></span>
@@ -5515,17 +5530,17 @@
           if (existing) {
             if (!existing.courses.includes(course.name)) existing.courses.push(course.name);
           } else {
-            birthdayMap.set(key, { student, birthdate, courses: [course.name], next: nextBirthdayInfo(birthdate) });
+            birthdayMap.set(key, { student, birthdate, courseId: course.id, courses: [course.name], next: nextBirthdayInfo(birthdate) });
           }
         }));
         const birthdays = [...birthdayMap.values()]
-          .filter((item) => item.next)
+          .filter((item) => item.next && item.next.days <= 7)
           .sort((a, b) => a.next.days - b.next.days || a.student.name.localeCompare(b.student.name, "de"))
           .map((item) => `
-            <div class="daily-overview-item">
+            <button type="button" class="daily-overview-item daily-overview-item-button" data-daily-student-id="${escapeHtml(item.student.id)}" data-daily-student-name="${escapeHtml(item.student.name)}" data-daily-course-id="${escapeHtml(item.courseId)}">
               <strong>${escapeHtml(item.student.name)}</strong>
               <div class="muted">${String(item.next.date.getDate()).padStart(2, "0")}.${String(item.next.date.getMonth() + 1).padStart(2, "0")}. · ${item.next.days === 0 ? "heute" : item.next.days === 1 ? "morgen" : `in ${item.next.days} Tagen`} · ${escapeHtml(item.courses.join(", "))}</div>
-            </div>
+            </button>
           `);
 
         const today = todayIso();
@@ -5547,10 +5562,10 @@
           .filter((item) => item.open > 0)
           .sort((a, b) => b.open - a.open || a.list.title.localeCompare(b.list.title, "de"))
           .map((item) => `
-            <div class="daily-overview-item">
+            <button type="button" class="daily-overview-item daily-overview-item-button" data-daily-checklist-id="${escapeHtml(item.list.id)}" data-daily-checklist-course-id="${escapeHtml(item.course.id)}">
               <strong>${escapeHtml(item.list.title)}</strong>
               <div class="muted">${escapeHtml(item.course.name)} · ${item.open} offen</div>
-            </div>
+            </button>
           `));
 
         const unfinished = state.courses.flatMap((course) => (course.checkEntries || [])
@@ -5569,7 +5584,7 @@
 
         $("#dailyOverviewContent").innerHTML = `
           <div class="daily-overview-grid">
-            ${dailyOverviewSection("Anstehende Geburtstage", birthdays, "Keine Geburtstage gespeichert.")}
+            ${dailyOverviewSection("Geburtstage – nächste 7 Tage", birthdays, "Keine Geburtstage in den nächsten 7 Tagen.")}
             ${dailyOverviewSection("Termine – nächste 30 Tage", events, "Keine Termine in den nächsten 30 Tagen.")}
             ${dailyOverviewSection("Offene Checklisten", checklists, "Alle Checklisten sind erledigt.")}
             ${dailyOverviewSection("Noch nicht abgeschlossene Einträge", unfinished, "Keine offenen Einträge.")}
@@ -8886,8 +8901,7 @@
 
       $("#newCourseBtn").addEventListener("click", openNewCourseModal);
       $("#newStudentBtn").addEventListener("click", openNewStudentModal);
-      $("#homeLogo").addEventListener("click", showCourseListOnly);
-      $("#openDailyOverviewBtn").addEventListener("click", openDailyOverview);
+      $("#homeLogo").addEventListener("click", openDailyOverview);
       $("#closeDailyOverviewBtn").addEventListener("click", closeDailyOverview);
       $("#openCalendarBtn").addEventListener("click", () => openCalendarView(view.calendarDate || todayIso()));
       $("#openGeneralNotesBtn").addEventListener("click", openGeneralNotes);
@@ -8981,6 +8995,27 @@
 
       $("#dailyOverviewModal").addEventListener("click", (event) => {
         if (event.target.id === "dailyOverviewModal") closeDailyOverview();
+      });
+
+      $("#dailyOverviewContent").addEventListener("click", (event) => {
+        const studentButton = event.target.closest("[data-daily-student-id]");
+        if (studentButton) {
+          state.selectedCourseId = studentButton.dataset.dailyCourseId;
+          closeDailyOverview();
+          openStudentOverview(studentButton.dataset.dailyStudentId, studentButton.dataset.dailyStudentName || "");
+          return;
+        }
+        const checklistButton = event.target.closest("[data-daily-checklist-id]");
+        if (checklistButton) {
+          state.selectedCourseId = checklistButton.dataset.dailyChecklistCourseId;
+          view.homeOnly = false;
+          view.tab = "checklists";
+          view.selectedChecklistId = checklistButton.dataset.dailyChecklistId;
+          view.selectedChecklistCourseId = checklistButton.dataset.dailyChecklistCourseId;
+          closeDailyOverview();
+          save();
+          render();
+        }
       });
 
       $("#calendarView").addEventListener("click", (event) => {
