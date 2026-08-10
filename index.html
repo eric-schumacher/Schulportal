@@ -275,6 +275,33 @@
       min-width: 330px;
     }
 
+    .daily-overview-trigger {
+      width: 30px;
+      min-width: 30px;
+      height: 30px;
+      min-height: 30px;
+      padding: 0;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      box-shadow: none;
+      opacity: .72;
+    }
+
+    .daily-overview-trigger:hover {
+      background: rgba(255, 255, 255, .7);
+      box-shadow: none;
+      opacity: 1;
+    }
+
+    .daily-overview-trigger img {
+      width: 28px;
+      height: 28px;
+      display: block;
+      object-fit: contain;
+      pointer-events: none;
+    }
+
     .brand-home {
       border: 0;
       border-radius: 0;
@@ -1483,8 +1510,11 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       background:
-        linear-gradient(rgba(255, 255, 255, .78), rgba(255, 255, 255, .78)),
+        linear-gradient(rgba(255, 255, 255, .68), rgba(255, 255, 255, .68)),
+        linear-gradient(to right, rgba(8, 121, 149, .12) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(8, 121, 149, .12) 1px, transparent 1px),
         linear-gradient(135deg, #dff5fb, #f0f8e8);
+      background-size: auto, var(--seat-grid-size, 24px) var(--seat-grid-size, 24px), var(--seat-grid-size, 24px) var(--seat-grid-size, 24px), auto;
       overflow: auto;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
@@ -1515,6 +1545,7 @@
       touch-action: none;
       user-select: none;
       box-shadow: var(--shadow-soft);
+      transform-origin: top left;
     }
 
     .seat-tile.active {
@@ -1535,6 +1566,104 @@
 
     .seat-tile.marked-material {
       border-color: var(--accent);
+    }
+
+    .seat-table {
+      position: absolute;
+      width: 220px;
+      height: 72px;
+      border: 3px solid #9b6a36;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(145deg, #f0c78d, #dba763);
+      color: #52310d;
+      font-size: 17px;
+      font-weight: 850;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+      box-shadow: 0 10px 20px rgba(83, 49, 12, .2);
+    }
+
+    .seat-table.dragging {
+      z-index: 5;
+      cursor: grabbing;
+      box-shadow: 0 16px 30px rgba(83, 49, 12, .3);
+    }
+
+    .seating-plan-controls {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .seating-plan-controls select {
+      width: auto;
+      min-width: 125px;
+    }
+
+    .seating-tool-button {
+      min-height: 36px;
+      white-space: nowrap;
+    }
+
+    .daily-overview-modal {
+      width: min(980px, 94vw);
+      max-height: min(820px, 90vh);
+      border-radius: 24px;
+      overflow: hidden;
+    }
+
+    .daily-overview-content {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+      padding: 18px;
+    }
+
+    .daily-overview-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .daily-overview-card {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+      overflow: hidden;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .daily-overview-card h3 {
+      margin: 0;
+      padding: 12px 14px;
+      background: var(--pastel-header);
+      font-size: 17px;
+    }
+
+    .daily-overview-list {
+      display: grid;
+      gap: 0;
+      padding: 6px 14px 12px;
+    }
+
+    .daily-overview-item {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .daily-overview-item:last-child {
+      border-bottom: 0;
+    }
+
+    @media (max-width: 760px) {
+      .daily-overview-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     .seat-tile .avatar {
@@ -3005,6 +3134,9 @@
   </div>
   <div class="app">
     <header class="topbar">
+      <button type="button" class="daily-overview-trigger" id="openDailyOverviewBtn" title="Tagesübersicht öffnen" aria-label="Tagesübersicht öffnen">
+        <img src="schulportal-app-icon-transparent-square.png" alt="">
+      </button>
       <div class="brand">
         <button type="button" class="brand-home" id="homeLogo" title="Zur Kursübersicht">
           <img class="brand-logo-full" src="schulportal-logo-home.png" alt="Schulportal">
@@ -3461,6 +3593,16 @@
     </section>
   </div>
 
+  <div id="dailyOverviewModal" class="modal-backdrop hidden">
+    <section class="modal daily-overview-modal">
+      <header>
+        <span>Tagesübersicht</span>
+        <button type="button" class="icon" id="closeDailyOverviewBtn" aria-label="Tagesübersicht schließen">x</button>
+      </header>
+      <div class="daily-overview-content" id="dailyOverviewContent"></div>
+    </section>
+  </div>
+
   <script>
     (() => {
       const STORAGE_KEY = "codex-lehrer-notenbuch-v10";
@@ -3470,6 +3612,7 @@
       const BACKUP_LAST_DATE_KEY = "notenbuch-last-auto-backup-date";
       const WHEEL_POINTER_ANGLE = 0;
       const LOCK_PATTERNS = new Set(["0-4-8-6", "0-4-8-7-6"]);
+      const AUTO_LOCK_MS = 2 * 60 * 1000;
       const STUDENT_PHOTO_SIZE = 320;
       const STUDENT_PHOTO_QUALITY = 0.72;
       const $ = (selector, root = document) => root.querySelector(selector);
@@ -3481,6 +3624,8 @@
         values: [],
         livePoint: null
       };
+      let autoLockTimer = null;
+      let lastActivityAt = Date.now();
 
       const view = {
         homeOnly: true,
@@ -3641,6 +3786,27 @@
         screen.classList.add("hidden");
         screen.classList.remove("pattern-visible");
         resetLockPattern();
+        resetAutoLockTimer();
+      }
+
+      function lockAppAutomatically() {
+        const screen = $("#lockScreen");
+        if (!screen || !screen.classList.contains("hidden")) return;
+        clearTimeout(autoLockTimer);
+        autoLockTimer = null;
+        resetLockPattern();
+        lockPattern.active = false;
+        $("#lockHint").textContent = "Nach 2 Minuten automatisch gesperrt";
+        screen.classList.remove("hidden");
+        screen.classList.add("pattern-visible");
+      }
+
+      function resetAutoLockTimer() {
+        lastActivityAt = Date.now();
+        clearTimeout(autoLockTimer);
+        const screen = $("#lockScreen");
+        if (!screen || !screen.classList.contains("hidden")) return;
+        autoLockTimer = setTimeout(lockAppAutomatically, AUTO_LOCK_MS);
       }
 
       function finishLockPattern() {
@@ -3678,6 +3844,14 @@
         window.addEventListener("resize", syncLockViewport);
         window.addEventListener("orientationchange", syncLockViewport);
         window.visualViewport?.addEventListener("resize", syncLockViewport);
+        ["pointerdown", "keydown", "touchstart"].forEach((type) => {
+          document.addEventListener(type, resetAutoLockTimer, { passive: true });
+        });
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden) return;
+          if (Date.now() - lastActivityAt >= AUTO_LOCK_MS) lockAppAutomatically();
+          else resetAutoLockTimer();
+        });
         screen.addEventListener("click", () => {
           if (screen.classList.contains("pattern-visible")) return;
           resetLockPattern();
@@ -4473,7 +4647,9 @@
           checkEntries: [],
           checklists: [],
           seatOrder: [],
-          seatPositions: {}
+          seatPositions: {},
+          seatingPlans: [],
+          activeSeatingPlanId: ""
         });
         const mathematics = makeCourse("5d", "Mathematik", roster5d);
         const sport = makeCourse("5d", "Sport", roster5d);
@@ -4608,6 +4784,46 @@
               course.seatPositions[id] = position;
             }
           });
+          course.seatingPlans = Array.isArray(course.seatingPlans) ? course.seatingPlans : [];
+          if (!course.seatingPlans.length) {
+            course.seatingPlans.push({
+              id: uid("sp"),
+              name: "Sitzplan 1",
+              positions: { ...course.seatPositions },
+              tables: [],
+              tileScale: 1,
+              gridSize: 24
+            });
+          }
+          course.seatingPlans.forEach((plan, index) => {
+            plan.id ||= uid("sp");
+            plan.name = normalizeText(plan.name || `Sitzplan ${index + 1}`);
+            plan.positions = plan.positions && typeof plan.positions === "object" && !Array.isArray(plan.positions) ? plan.positions : {};
+            Object.keys(plan.positions).forEach((id) => {
+              if (!studentIds.has(id)) delete plan.positions[id];
+              else {
+                const position = plan.positions[id] || {};
+                plan.positions[id] = {
+                  x: Number.isFinite(Number(position.x)) ? Number(position.x) : 0,
+                  y: Number.isFinite(Number(position.y)) ? Number(position.y) : 0
+                };
+              }
+            });
+            plan.tables = Array.isArray(plan.tables) ? plan.tables.map((table, tableIndex) => ({
+              id: table.id || uid("table"),
+              label: normalizeText(table.label || `Tisch ${tableIndex + 1}`),
+              x: Number.isFinite(Number(table.x)) ? Number(table.x) : 24,
+              y: Number.isFinite(Number(table.y)) ? Number(table.y) : 24,
+              width: Math.max(120, Number(table.width) || 220),
+              height: Math.max(54, Number(table.height) || 72)
+            })) : [];
+            plan.tileScale = [0.85, 1, 1.2].includes(Number(plan.tileScale)) ? Number(plan.tileScale) : 1;
+            plan.gridSize = [16, 24, 32, 40].includes(Number(plan.gridSize)) ? Number(plan.gridSize) : 24;
+          });
+          if (!course.seatingPlans.some((plan) => plan.id === course.activeSeatingPlanId)) {
+            course.activeSeatingPlanId = course.seatingPlans[0].id;
+          }
+          course.seatPositions = course.seatingPlans.find((plan) => plan.id === course.activeSeatingPlanId).positions;
         });
         if (!data.courses.length) {
           data.selectedCourseId = "";
@@ -5026,6 +5242,26 @@
         ];
       }
 
+      function currentSeatingPlan(course = currentCourse()) {
+        course.seatingPlans = Array.isArray(course.seatingPlans) ? course.seatingPlans : [];
+        if (!course.seatingPlans.length) {
+          course.seatingPlans.push({ id: uid("sp"), name: "Sitzplan 1", positions: { ...(course.seatPositions || {}) }, tables: [], tileScale: 1, gridSize: 24 });
+        }
+        let plan = course.seatingPlans.find((item) => item.id === course.activeSeatingPlanId) || course.seatingPlans[0];
+        course.activeSeatingPlanId = plan.id;
+        plan.positions ||= {};
+        plan.tables ||= [];
+        plan.tileScale ||= 1;
+        plan.gridSize ||= 24;
+        course.seatPositions = plan.positions;
+        return plan;
+      }
+
+      function snapSeatValue(value, plan) {
+        const size = Math.max(8, Number(plan?.gridSize) || 24);
+        return Math.max(0, Math.round(Number(value || 0) / size) * size);
+      }
+
       function defaultSeatPosition(index) {
         const tileWidth = 132;
         const gap = 14;
@@ -5037,29 +5273,34 @@
       }
 
       function ensureSeatPositions(course, students = orderedSeatStudents(course)) {
-        course.seatPositions ||= {};
+        const plan = currentSeatingPlan(course);
+        const positions = plan.positions;
         let changed = false;
         const ids = new Set(students.map((student) => student.id));
-        Object.keys(course.seatPositions).forEach((id) => {
+        Object.keys(positions).forEach((id) => {
           if (!ids.has(id)) {
-            delete course.seatPositions[id];
+            delete positions[id];
             changed = true;
           }
         });
         students.forEach((student, index) => {
-          if (!course.seatPositions[student.id]) {
-            course.seatPositions[student.id] = defaultSeatPosition(index);
+          if (!positions[student.id]) {
+            positions[student.id] = defaultSeatPosition(index);
             changed = true;
           }
         });
+        course.seatPositions = positions;
         return changed;
       }
 
       function arrangeSeatPositions(course, students = orderedSeatStudents(course)) {
-        course.seatPositions = {};
+        const plan = currentSeatingPlan(course);
+        plan.positions = {};
         students.forEach((student, index) => {
-          course.seatPositions[student.id] = defaultSeatPosition(index);
+          const position = defaultSeatPosition(index);
+          plan.positions[student.id] = { x: snapSeatValue(position.x, plan), y: snapSeatValue(position.y, plan) };
         });
+        course.seatPositions = plan.positions;
       }
 
       function todaySeatingEntry(course, create = false) {
@@ -5241,6 +5482,108 @@
           .filter((event) => (event.allCourses || ids.has(event.courseId)) && event.date >= today)
           .sort((a, b) => a.date.localeCompare(b.date) || (a.time || "99:99").localeCompare(b.time || "99:99"))
           .slice(0, 8);
+      }
+
+      function nextBirthdayInfo(birthdate) {
+        const normalized = normalizeBirthdate(birthdate);
+        if (!normalized) return null;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        let next = new Date(today.getFullYear(), Number(normalized.slice(5, 7)) - 1, Number(normalized.slice(8, 10)));
+        if (next < today) next = new Date(today.getFullYear() + 1, next.getMonth(), next.getDate());
+        return { date: next, days: Math.round((next - today) / 86400000) };
+      }
+
+      function dailyOverviewSection(title, items, emptyText) {
+        return `
+          <section class="daily-overview-card">
+            <h3>${escapeHtml(title)}</h3>
+            <div class="daily-overview-list">
+              ${items.length ? items.join("") : `<div class="daily-overview-item muted">${escapeHtml(emptyText)}</div>`}
+            </div>
+          </section>
+        `;
+      }
+
+      function renderDailyOverview() {
+        const birthdayMap = new Map();
+        state.courses.forEach((course) => course.students.forEach((student) => {
+          const birthdate = normalizeBirthdate(student.birthdate);
+          if (!birthdate) return;
+          const key = nameKey(student.name);
+          const existing = birthdayMap.get(key);
+          if (existing) {
+            if (!existing.courses.includes(course.name)) existing.courses.push(course.name);
+          } else {
+            birthdayMap.set(key, { student, birthdate, courses: [course.name], next: nextBirthdayInfo(birthdate) });
+          }
+        }));
+        const birthdays = [...birthdayMap.values()]
+          .filter((item) => item.next)
+          .sort((a, b) => a.next.days - b.next.days || a.student.name.localeCompare(b.student.name, "de"))
+          .map((item) => `
+            <div class="daily-overview-item">
+              <strong>${escapeHtml(item.student.name)}</strong>
+              <div class="muted">${String(item.next.date.getDate()).padStart(2, "0")}.${String(item.next.date.getMonth() + 1).padStart(2, "0")}. · ${item.next.days === 0 ? "heute" : item.next.days === 1 ? "morgen" : `in ${item.next.days} Tagen`} · ${escapeHtml(item.courses.join(", "))}</div>
+            </div>
+          `);
+
+        const today = todayIso();
+        const until = new Date();
+        until.setDate(until.getDate() + 30);
+        const untilIso = until.toISOString().slice(0, 10);
+        const events = [...(state.calendarEvents || [])]
+          .filter((event) => event.date >= today && event.date <= untilIso)
+          .sort((a, b) => a.date.localeCompare(b.date) || (a.time || "99:99").localeCompare(b.time || "99:99"))
+          .map((event) => `
+            <div class="daily-overview-item">
+              <strong>${escapeHtml(event.title)}</strong>
+              <div class="muted">${formatDate(event.date)}${event.time ? ` · ${escapeHtml(event.time)}` : ""} · ${escapeHtml(calendarEventScopeLabel(event))}</div>
+            </div>
+          `);
+
+        const checklists = state.courses.flatMap((course) => (course.checklists || [])
+          .map((list) => ({ course, list, open: Math.max(0, course.students.length - (list.done || []).length) }))
+          .filter((item) => item.open > 0)
+          .sort((a, b) => b.open - a.open || a.list.title.localeCompare(b.list.title, "de"))
+          .map((item) => `
+            <div class="daily-overview-item">
+              <strong>${escapeHtml(item.list.title)}</strong>
+              <div class="muted">${escapeHtml(item.course.name)} · ${item.open} offen</div>
+            </div>
+          `));
+
+        const unfinished = state.courses.flatMap((course) => (course.checkEntries || [])
+          .filter((entry) => (entry.homeworkMissing || []).length || (entry.materialMissing || []).length)
+          .map((entry) => ({ course, entry })))
+          .sort((a, b) => String(b.entry.date).localeCompare(String(a.entry.date)))
+          .map(({ course, entry }) => {
+            const count = new Set([...(entry.homeworkMissing || []), ...(entry.materialMissing || [])]).size;
+            return `
+              <div class="daily-overview-item">
+                <strong>${escapeHtml(course.name)}${entry.note ? ` · ${escapeHtml(entry.note)}` : ""}</strong>
+                <div class="muted">${formatDate(entry.date)} · ${count} noch nicht abgeschlossen</div>
+              </div>
+            `;
+          });
+
+        $("#dailyOverviewContent").innerHTML = `
+          <div class="daily-overview-grid">
+            ${dailyOverviewSection("Anstehende Geburtstage", birthdays, "Keine Geburtstage gespeichert.")}
+            ${dailyOverviewSection("Termine – nächste 30 Tage", events, "Keine Termine in den nächsten 30 Tagen.")}
+            ${dailyOverviewSection("Offene Checklisten", checklists, "Alle Checklisten sind erledigt.")}
+            ${dailyOverviewSection("Noch nicht abgeschlossene Einträge", unfinished, "Keine offenen Einträge.")}
+          </div>
+        `;
+      }
+
+      function openDailyOverview() {
+        renderDailyOverview();
+        $("#dailyOverviewModal").classList.remove("hidden");
+      }
+
+      function closeDailyOverview() {
+        $("#dailyOverviewModal").classList.add("hidden");
       }
 
       function renderCalendarBadge() {
@@ -5846,21 +6189,28 @@
 
       function renderSeating(course) {
         const labels = absenceLabels(course);
+        const plan = currentSeatingPlan(course);
         const seatingStudents = orderedSeatStudents(course);
         if (ensureSeatPositions(course, seatingStudents)) save();
         const todayMarks = todaySeatingMarks(course);
-        const maxX = Math.max(0, ...seatingStudents.map((student) => (course.seatPositions?.[student.id]?.x || 0) + 154));
-        const maxY = Math.max(0, ...seatingStudents.map((student) => (course.seatPositions?.[student.id]?.y || 0) + 116));
+        const tileScale = Number(plan.tileScale) || 1;
+        const tileWidth = Math.round(132 * tileScale);
+        const tileHeight = Math.round(96 * tileScale);
+        const maxX = Math.max(0, ...seatingStudents.map((student) => (plan.positions?.[student.id]?.x || 0) + tileWidth + 22), ...plan.tables.map((table) => table.x + table.width + 22));
+        const maxY = Math.max(0, ...seatingStudents.map((student) => (plan.positions?.[student.id]?.y || 0) + tileHeight + 22), ...plan.tables.map((table) => table.y + table.height + 22));
         const boardWidth = Math.max(1600, maxX + 24);
         const boardHeight = Math.max(680, maxY + 24);
+        const tables = plan.tables.map((table) => `
+          <button type="button" class="seat-table" data-seat-table="${escapeHtml(table.id)}" style="left:${Math.max(0, Number(table.x) || 0)}px; top:${Math.max(0, Number(table.y) || 0)}px; width:${Math.max(120, Number(table.width) || 220)}px; height:${Math.max(54, Number(table.height) || 72)}px;">${escapeHtml(table.label)}</button>
+        `).join("");
         const tiles = seatingStudents.map((student) => {
           const active = student.id === view.selectedStudentId ? " active" : "";
           const markedHomework = todayMarks.homework.has(student.id) ? " marked-homework" : "";
           const markedMaterial = todayMarks.material.has(student.id) ? " marked-material" : "";
           const counts = studentCounts(course, student.id);
-          const position = course.seatPositions?.[student.id] || defaultSeatPosition(0);
+          const position = plan.positions?.[student.id] || defaultSeatPosition(0);
           return `
-            <button type="button" class="seat-tile${active}${markedHomework}${markedMaterial}" data-seat-student="${escapeHtml(student.id)}" style="left:${Math.max(0, Number(position.x) || 0)}px; top:${Math.max(0, Number(position.y) || 0)}px;">
+            <button type="button" class="seat-tile${active}${markedHomework}${markedMaterial}" data-seat-student="${escapeHtml(student.id)}" style="left:${Math.max(0, Number(position.x) || 0)}px; top:${Math.max(0, Number(position.y) || 0)}px; width:${tileWidth}px; min-height:${tileHeight}px; padding:${Math.max(6, Math.round(8 * tileScale))}px;">
               <span class="avatar">${student.photo ? `<img src="${escapeHtml(student.photo)}" alt="">` : escapeHtml(initials(student.name))}</span>
               <span class="seat-name">${escapeHtml(student.name)}</span>
               <span class="seat-stats">
@@ -5873,16 +6223,39 @@
         $("#mainContent").innerHTML = `
           <div class="seating-area">
             <div class="seating-toolbar">
-              <div class="seating-toolbar-group">
-                <button type="button" id="shuffleSeatingBtn">Mischen</button>
+              <div class="seating-plan-controls">
+                <select id="seatingPlanSelect" aria-label="Sitzplan auswählen">
+                  ${course.seatingPlans.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === plan.id ? "selected" : ""}>${escapeHtml(item.name)}</option>`).join("")}
+                </select>
+                <button type="button" class="seating-tool-button" id="newSeatingPlanBtn">Neuer Plan</button>
+                <button type="button" class="seating-tool-button" id="renameSeatingPlanBtn">Umbenennen</button>
+                <button type="button" class="seating-tool-button" id="deleteSeatingPlanBtn" ${course.seatingPlans.length <= 1 ? "disabled" : ""}>Plan löschen</button>
+              </div>
+              <div class="seating-plan-controls">
+                <button type="button" class="seating-tool-button" id="addSeatTableBtn">Tisch hinzufügen</button>
+                <button type="button" class="seating-tool-button" id="removeSeatTableBtn" ${plan.tables.length ? "" : "disabled"}>Letzten Tisch löschen</button>
+                <label>Schülergröße
+                  <select id="seatTileScaleSelect">
+                    <option value="0.85" ${tileScale === .85 ? "selected" : ""}>Klein</option>
+                    <option value="1" ${tileScale === 1 ? "selected" : ""}>Normal</option>
+                    <option value="1.2" ${tileScale === 1.2 ? "selected" : ""}>Groß</option>
+                  </select>
+                </label>
+                <label>Raster
+                  <select id="seatGridSizeSelect">
+                    ${[16, 24, 32, 40].map((size) => `<option value="${size}" ${Number(plan.gridSize) === size ? "selected" : ""}>${size}px</option>`).join("")}
+                  </select>
+                </label>
+                <button type="button" class="seating-tool-button" id="shuffleSeatingBtn">Mischen</button>
               </div>
               <div class="seating-toolbar-group">
                 <button type="button" class="seating-mode-button${view.seatingMode === "homework" ? " active" : ""}" data-seating-mode="homework">${escapeHtml(labels.homeworkButton)}</button>
                 <button type="button" class="seating-mode-button${view.seatingMode === "material" ? " active" : ""}" data-seating-mode="material">${escapeHtml(labels.materialButton)}</button>
               </div>
             </div>
-            <div class="seating-board" id="seatingBoard">
+            <div class="seating-board" id="seatingBoard" style="--seat-grid-size:${Number(plan.gridSize) || 24}px;">
               <div class="seating-canvas" id="seatingCanvas" style="width:${boardWidth}px; min-height:${boardHeight}px;">
+                ${tables}
                 ${tiles || `<div class="empty-state">Bitte links Schüler hinzufügen.</div>`}
               </div>
             </div>
@@ -6534,7 +6907,9 @@
           checkEntries: [],
           checklists: [],
           seatOrder: [],
-          seatPositions: {}
+          seatPositions: {},
+          seatingPlans: [],
+          activeSeatingPlanId: ""
         };
         state.courses.push(course);
         state.groupBooks ||= [];
@@ -7204,6 +7579,8 @@
         course.checklists = [];
         course.seatOrder = [];
         course.seatPositions = {};
+        course.seatingPlans = [];
+        course.activeSeatingPlanId = "";
         state.calendarEvents = (state.calendarEvents || []).filter((event) => event.courseId !== course.id);
         view.selectedChecklistId = null;
         view.selectedChecklistCourseId = null;
@@ -8084,22 +8461,23 @@
       });
 
       $("#mainContent").addEventListener("pointerdown", (event) => {
-        const tile = event.target.closest("[data-seat-student]");
-        if (!tile || view.tab !== "seating") return;
-        const rect = tile.getBoundingClientRect();
+        const item = event.target.closest("[data-seat-student], [data-seat-table]");
+        if (!item || view.tab !== "seating") return;
+        const rect = item.getBoundingClientRect();
         view.seatingDrag = {
-          studentId: tile.dataset.seatStudent,
+          kind: item.dataset.seatTable ? "table" : "student",
+          itemId: item.dataset.seatTable || item.dataset.seatStudent,
           pointerId: event.pointerId,
           offsetX: event.clientX - rect.left,
           offsetY: event.clientY - rect.top,
           startX: event.clientX,
           startY: event.clientY,
-          x: Number.parseFloat(tile.style.left) || 0,
-          y: Number.parseFloat(tile.style.top) || 0,
+          x: Number.parseFloat(item.style.left) || 0,
+          y: Number.parseFloat(item.style.top) || 0,
           moved: false
         };
-        tile.classList.add("dragging");
-        tile.setPointerCapture?.(event.pointerId);
+        item.classList.add("dragging");
+        item.setPointerCapture?.(event.pointerId);
         event.preventDefault();
       });
 
@@ -8108,40 +8486,51 @@
         if (!drag || drag.pointerId !== event.pointerId) return;
         const board = $("#seatingBoard");
         const canvas = $("#seatingCanvas");
-        const tile = $$("[data-seat-student]").find((item) => item.dataset.seatStudent === drag.studentId);
-        if (!board || !canvas || !tile) return;
+        const item = drag.kind === "table"
+          ? $$("[data-seat-table]").find((element) => element.dataset.seatTable === drag.itemId)
+          : $$("[data-seat-student]").find((element) => element.dataset.seatStudent === drag.itemId);
+        if (!board || !canvas || !item) return;
+        const plan = currentSeatingPlan();
         const canvasRect = canvas.getBoundingClientRect();
-        const maxX = Math.max(0, canvas.offsetWidth - tile.offsetWidth - 2);
-        const maxY = Math.max(0, canvas.offsetHeight - tile.offsetHeight - 2);
-        const x = Math.min(maxX, Math.max(0, event.clientX - canvasRect.left - drag.offsetX));
-        const y = Math.min(maxY, Math.max(0, event.clientY - canvasRect.top - drag.offsetY));
+        const maxX = Math.max(0, canvas.offsetWidth - item.offsetWidth - 2);
+        const maxY = Math.max(0, canvas.offsetHeight - item.offsetHeight - 2);
+        const x = Math.min(maxX, snapSeatValue(event.clientX - canvasRect.left - drag.offsetX, plan));
+        const y = Math.min(maxY, snapSeatValue(event.clientY - canvasRect.top - drag.offsetY, plan));
         drag.x = x;
         drag.y = y;
         if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > 6) drag.moved = true;
-        tile.style.left = `${x}px`;
-        tile.style.top = `${y}px`;
+        item.style.left = `${x}px`;
+        item.style.top = `${y}px`;
         event.preventDefault();
       });
 
       $("#mainContent").addEventListener("pointerup", (event) => {
         const drag = view.seatingDrag;
         if (!drag || drag.pointerId !== event.pointerId) return;
-        const tile = $$("[data-seat-student]").find((item) => item.dataset.seatStudent === drag.studentId);
-        tile?.classList.remove("dragging");
-        tile?.releasePointerCapture?.(event.pointerId);
+        const item = drag.kind === "table"
+          ? $$("[data-seat-table]").find((element) => element.dataset.seatTable === drag.itemId)
+          : $$("[data-seat-student]").find((element) => element.dataset.seatStudent === drag.itemId);
+        item?.classList.remove("dragging");
+        item?.releasePointerCapture?.(event.pointerId);
         const course = currentCourse();
-        course.seatPositions ||= {};
-        course.seatPositions[drag.studentId] = { x: Math.max(0, drag.x), y: Math.max(0, drag.y) };
+        const plan = currentSeatingPlan(course);
+        if (drag.kind === "table") {
+          const table = plan.tables.find((entry) => entry.id === drag.itemId);
+          if (table) Object.assign(table, { x: Math.max(0, drag.x), y: Math.max(0, drag.y) });
+        } else {
+          plan.positions[drag.itemId] = { x: Math.max(0, drag.x), y: Math.max(0, drag.y) };
+          course.seatPositions = plan.positions;
+        }
         save();
         view.seatingDrag = null;
         view.seatingSuppressClickUntil = Date.now() + 250;
-        if (!drag.moved) handleSeatingStudentTap(drag.studentId);
+        if (!drag.moved && drag.kind === "student") handleSeatingStudentTap(drag.itemId);
       });
 
       $("#mainContent").addEventListener("pointercancel", (event) => {
         const drag = view.seatingDrag;
         if (!drag || drag.pointerId !== event.pointerId) return;
-        $$("[data-seat-student]").forEach((tile) => tile.classList.remove("dragging"));
+        $$("[data-seat-student], [data-seat-table]").forEach((item) => item.classList.remove("dragging"));
         view.seatingDrag = null;
         view.seatingSuppressClickUntil = Date.now() + 250;
       });
@@ -8498,6 +8887,8 @@
       $("#newCourseBtn").addEventListener("click", openNewCourseModal);
       $("#newStudentBtn").addEventListener("click", openNewStudentModal);
       $("#homeLogo").addEventListener("click", showCourseListOnly);
+      $("#openDailyOverviewBtn").addEventListener("click", openDailyOverview);
+      $("#closeDailyOverviewBtn").addEventListener("click", closeDailyOverview);
       $("#openCalendarBtn").addEventListener("click", () => openCalendarView(view.calendarDate || todayIso()));
       $("#openGeneralNotesBtn").addEventListener("click", openGeneralNotes);
       $("#closeGeneralNotesBtn").addEventListener("click", closeGeneralNotes);
@@ -8586,6 +8977,10 @@
 
       $("#generalNotesModal").addEventListener("click", (event) => {
         if (event.target.id === "generalNotesModal") closeGeneralNotes();
+      });
+
+      $("#dailyOverviewModal").addEventListener("click", (event) => {
+        if (event.target.id === "dailyOverviewModal") closeDailyOverview();
       });
 
       $("#calendarView").addEventListener("click", (event) => {
@@ -8946,6 +9341,40 @@
       $("#mainContent").addEventListener("change", (event) => {
         if (event.target.classList.contains("grade-input")) render();
 
+        if (event.target.id === "seatingPlanSelect") {
+          const course = currentCourse();
+          course.activeSeatingPlanId = event.target.value;
+          currentSeatingPlan(course);
+          save();
+          renderSeating(course);
+          return;
+        }
+
+        if (event.target.id === "seatTileScaleSelect") {
+          const course = currentCourse();
+          currentSeatingPlan(course).tileScale = Number(event.target.value) || 1;
+          save();
+          renderSeating(course);
+          return;
+        }
+
+        if (event.target.id === "seatGridSizeSelect") {
+          const course = currentCourse();
+          const plan = currentSeatingPlan(course);
+          plan.gridSize = Number(event.target.value) || 24;
+          Object.values(plan.positions).forEach((position) => {
+            position.x = snapSeatValue(position.x, plan);
+            position.y = snapSeatValue(position.y, plan);
+          });
+          plan.tables.forEach((table) => {
+            table.x = snapSeatValue(table.x, plan);
+            table.y = snapSeatValue(table.y, plan);
+          });
+          save();
+          renderSeating(course);
+          return;
+        }
+
         if (event.target.id === "openOnlyToggle") {
           const list = currentChecklist();
           if (!list) return;
@@ -9006,6 +9435,68 @@
           const mode = seatingModeButton.dataset.seatingMode;
           view.seatingMode = view.seatingMode === mode ? null : mode;
           renderSeating(currentCourse());
+          return;
+        }
+
+        if (event.target.id === "newSeatingPlanBtn") {
+          const course = currentCourse();
+          const currentPlan = currentSeatingPlan(course);
+          const name = `Sitzplan ${course.seatingPlans.length + 1}`;
+          const plan = {
+            id: uid("sp"),
+            name,
+            positions: Object.fromEntries(Object.entries(currentPlan.positions).map(([id, position]) => [id, { ...position }])),
+            tables: currentPlan.tables.map((table) => ({ ...table, id: uid("table") })),
+            tileScale: currentPlan.tileScale,
+            gridSize: currentPlan.gridSize
+          };
+          course.seatingPlans.push(plan);
+          course.activeSeatingPlanId = plan.id;
+          course.seatPositions = plan.positions;
+          save();
+          renderSeating(course);
+          return;
+        }
+
+        if (event.target.id === "renameSeatingPlanBtn") {
+          const course = currentCourse();
+          const plan = currentSeatingPlan(course);
+          const name = normalizeText(prompt("Neuer Name des Sitzplans:", plan.name));
+          if (!name) return;
+          plan.name = name;
+          save();
+          renderSeating(course);
+          return;
+        }
+
+        if (event.target.id === "deleteSeatingPlanBtn") {
+          const course = currentCourse();
+          const plan = currentSeatingPlan(course);
+          if (course.seatingPlans.length <= 1 || !confirm(`Sitzplan „${plan.name}“ löschen?`)) return;
+          course.seatingPlans = course.seatingPlans.filter((item) => item.id !== plan.id);
+          course.activeSeatingPlanId = course.seatingPlans[0].id;
+          currentSeatingPlan(course);
+          save();
+          renderSeating(course);
+          return;
+        }
+
+        if (event.target.id === "addSeatTableBtn") {
+          const course = currentCourse();
+          const plan = currentSeatingPlan(course);
+          plan.tables.push({ id: uid("table"), label: `Tisch ${plan.tables.length + 1}`, x: snapSeatValue(48 + plan.tables.length * 24, plan), y: snapSeatValue(48 + plan.tables.length * 24, plan), width: 220, height: 72 });
+          save();
+          renderSeating(course);
+          return;
+        }
+
+        if (event.target.id === "removeSeatTableBtn") {
+          const course = currentCourse();
+          const plan = currentSeatingPlan(course);
+          if (!plan.tables.length || !confirm("Den zuletzt hinzugefügten Tisch löschen?")) return;
+          plan.tables.pop();
+          save();
+          renderSeating(course);
           return;
         }
 
