@@ -1511,8 +1511,8 @@
       gap: 6px;
       padding: 8px;
       text-align: left;
-      cursor: pointer;
-      touch-action: pan-x pan-y;
+      cursor: grab;
+      touch-action: none;
       user-select: none;
       box-shadow: var(--shadow-soft);
     }
@@ -1589,6 +1589,30 @@
       grid-template-columns: minmax(260px, 340px) 1fr;
       gap: 18px;
       align-content: start;
+    }
+
+    .checklist-detail-panel {
+      min-height: 0;
+      max-height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .checklist-detail-panel > .inside {
+      min-height: 0;
+      flex: 1;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+
+    .checklist-detail-panel .mark-table,
+    .checklist-detail-panel .mark-row,
+    .checklist-detail-panel label,
+    .checklist-detail-panel span {
+      touch-action: pan-y;
     }
 
     .checklist-button {
@@ -6033,7 +6057,7 @@
             </div>
           `).join("");
           detail = `
-            <section class="plain-section">
+            <section class="plain-section checklist-detail-panel">
               <header>
                 <div class="checklist-headline">
                   <span>${escapeHtml(selected.title)}${groupCourses.length > 1 ? ` · ${escapeHtml(selectedCourse.name)}` : ""}</span>
@@ -8057,7 +8081,6 @@
       $("#mainContent").addEventListener("pointerdown", (event) => {
         const tile = event.target.closest("[data-seat-student]");
         if (!tile || view.tab !== "seating") return;
-        if (event.pointerType === "touch") return;
         const rect = tile.getBoundingClientRect();
         view.seatingDrag = {
           studentId: tile.dataset.seatStudent,
