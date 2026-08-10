@@ -43,24 +43,14 @@
     }
 
     * {
-      scrollbar-color: #6aa8bd transparent;
-      scrollbar-width: thin;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
     }
 
     ::-webkit-scrollbar {
-      width: 10px;
-      height: 10px;
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: #6aa8bd;
-      border: 2px solid transparent;
-      border-radius: 999px;
-      background-clip: padding-box;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: transparent;
+      display: none;
+      width: 0;
+      height: 0;
     }
 
     body {
@@ -873,6 +863,56 @@
       -webkit-overflow-scrolling: touch;
       overscroll-behavior-x: contain;
       touch-action: pan-x;
+    }
+
+    .tabs-shell {
+      position: relative;
+      min-width: 0;
+      background: var(--pastel-header);
+    }
+
+    .tab-scroll-arrow {
+      position: absolute;
+      z-index: 4;
+      top: 50%;
+      width: 30px;
+      min-width: 30px;
+      height: 46px;
+      min-height: 46px;
+      padding: 0;
+      border: 0;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      color: #176f82;
+      background: rgba(255, 255, 255, .94);
+      box-shadow: 0 4px 14px rgba(20, 35, 50, .18);
+      font-size: 30px;
+      font-weight: 900;
+      line-height: 1;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-50%) scale(.82);
+      transition: opacity .16s ease, transform .16s ease;
+    }
+
+    .tab-scroll-arrow.visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(-50%) scale(1);
+    }
+
+    .tab-scroll-arrow.left {
+      left: 7px;
+    }
+
+    .tab-scroll-arrow.right {
+      right: 7px;
+    }
+
+    .tab-scroll-arrow:hover {
+      color: var(--accent);
+      background: #fff;
     }
 
     .tabs::-webkit-scrollbar {
@@ -3006,15 +3046,19 @@
       </aside>
 
       <main class="main">
-        <nav class="tabs" aria-label="Arbeitsbereich">
-          <button type="button" class="tab active" data-tab="coursebook">Kursbuch</button>
-          <button type="button" class="tab" data-tab="notes">Übersicht einzeln</button>
-          <button type="button" class="tab" data-tab="grades">Leistungen</button>
-          <button type="button" class="tab" data-tab="tracking">Neue Versäumnisse</button>
-          <button type="button" class="tab" data-tab="overview">Versäumnis Übersicht</button>
-          <button type="button" class="tab" data-tab="checklists">Checklisten</button>
-          <button type="button" class="tab" data-tab="seating">Sitzplan</button>
-        </nav>
+        <div class="tabs-shell">
+          <button type="button" class="tab-scroll-arrow left" id="tabsScrollLeft" aria-label="Weitere Bereiche links anzeigen">‹</button>
+          <nav class="tabs" id="mainTabs" aria-label="Arbeitsbereich">
+            <button type="button" class="tab active" data-tab="coursebook">Kursbuch</button>
+            <button type="button" class="tab" data-tab="notes">Übersicht einzeln</button>
+            <button type="button" class="tab" data-tab="grades">Leistungen</button>
+            <button type="button" class="tab" data-tab="tracking">Neue Versäumnisse</button>
+            <button type="button" class="tab" data-tab="overview">Versäumnis Übersicht</button>
+            <button type="button" class="tab" data-tab="checklists">Checklisten</button>
+            <button type="button" class="tab" data-tab="seating">Sitzplan</button>
+          </nav>
+          <button type="button" class="tab-scroll-arrow right" id="tabsScrollRight" aria-label="Weitere Bereiche rechts anzeigen">›</button>
+        </div>
         <section class="main-content" id="mainContent"></section>
       </main>
     </div>
@@ -5491,6 +5535,15 @@
 
       function renderTabs() {
         $$(".tab").forEach((tab) => tab.classList.toggle("active", tab.dataset.tab === view.tab));
+        requestAnimationFrame(updateTabScrollHints);
+      }
+
+      function updateTabScrollHints() {
+        const tabs = $("#mainTabs");
+        if (!tabs) return;
+        const maxScroll = Math.max(0, tabs.scrollWidth - tabs.clientWidth);
+        $("#tabsScrollLeft")?.classList.toggle("visible", tabs.scrollLeft > 3);
+        $("#tabsScrollRight")?.classList.toggle("visible", tabs.scrollLeft < maxScroll - 3);
       }
 
       function renderGrades(course) {
@@ -9026,8 +9079,19 @@
 
       });
 
+      const mainTabs = $("#mainTabs");
+      mainTabs.addEventListener("scroll", updateTabScrollHints, { passive: true });
+      $("#tabsScrollLeft").addEventListener("click", () => {
+        mainTabs.scrollBy({ left: -Math.max(180, mainTabs.clientWidth * .72), behavior: "smooth" });
+      });
+      $("#tabsScrollRight").addEventListener("click", () => {
+        mainTabs.scrollBy({ left: Math.max(180, mainTabs.clientWidth * .72), behavior: "smooth" });
+      });
+      window.addEventListener("resize", updateTabScrollHints, { passive: true });
+
       setupLockScreen();
       render();
+      updateTabScrollHints();
       updateBackupButtonStatus();
       runAutomaticScheduledBackup();
       setInterval(runAutomaticScheduledBackup, 10 * 60 * 1000);
