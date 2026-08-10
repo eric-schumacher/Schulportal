@@ -343,6 +343,33 @@
       background: transparent;
     }
 
+    .notes-icon-button {
+      width: 30px;
+      min-width: 30px;
+      height: 30px;
+      min-height: 30px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      opacity: .72;
+    }
+
+    .notes-icon-button:hover {
+      background: transparent;
+      box-shadow: none;
+      opacity: 1;
+      transform: none;
+    }
+
+    .notes-icon-image {
+      width: 28px;
+      height: 28px;
+      display: block;
+      object-fit: contain;
+      pointer-events: none;
+    }
+
     .calendar-icon-image {
       width: 28px;
       height: 28px;
@@ -627,6 +654,9 @@
     .panel-body {
       min-height: 0;
       overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
       padding: 12px 14px 16px;
       background: linear-gradient(#fbfeff, #f5fbf8);
     }
@@ -659,7 +689,7 @@
       background: #fff;
       min-height: 54px;
       cursor: pointer;
-      touch-action: none;
+      touch-action: pan-y;
       user-select: none;
       box-shadow: 0 8px 18px rgba(20, 35, 50, .05);
     }
@@ -914,6 +944,9 @@
     .table-wrap {
       min-height: 0;
       overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-x pan-y;
       flex: 1;
       background: #f7fcfd;
     }
@@ -1214,6 +1247,8 @@
     .tracking-form {
       min-height: 0;
       overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
       padding: 14px 16px 18px;
       background: #fff;
       width: min(620px, 100%);
@@ -1234,6 +1269,9 @@
       gap: 4px;
       max-height: 230px;
       overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
       padding: 6px;
       border: 1px solid var(--line);
       border-radius: 7px;
@@ -1309,11 +1347,15 @@
     .tracking-list {
       min-height: 0;
       overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
     }
 
     .tracking-details-panel {
       min-height: 0;
       overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
       padding: 22px;
       background: #fff;
       border-left: 1px solid var(--line);
@@ -1344,6 +1386,8 @@
     .tracking-details-table-wrap {
       max-height: 310px;
       overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x pan-y;
       border: 1px solid var(--line);
       border-radius: 8px;
     }
@@ -1358,6 +1402,8 @@
     .tracking-modal-edit .mark-table {
       max-height: 310px;
       overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
     }
 
     .seating-area {
@@ -1400,6 +1446,9 @@
         linear-gradient(rgba(255, 255, 255, .78), rgba(255, 255, 255, .78)),
         linear-gradient(135deg, #dff5fb, #f0f8e8);
       overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-x pan-y;
       scrollbar-gutter: stable both-edges;
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9);
     }
@@ -1423,7 +1472,7 @@
       padding: 8px;
       text-align: left;
       cursor: pointer;
-      touch-action: none;
+      touch-action: pan-x pan-y;
       user-select: none;
       box-shadow: var(--shadow-soft);
     }
@@ -1492,6 +1541,9 @@
     .checklist-layout {
       min-height: 0;
       overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
       padding: 18px;
       display: grid;
       grid-template-columns: minmax(260px, 340px) 1fr;
@@ -1546,13 +1598,39 @@
     .coursebook-area {
       min-height: 0;
       flex: 1;
-      overflow: auto;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
       padding: 20px;
       display: grid;
-      grid-template-columns: repeat(3, minmax(240px, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 20px;
       align-content: start;
+      align-items: start;
+      container-type: inline-size;
+      container-name: coursebook;
       background: linear-gradient(135deg, rgba(232, 247, 251, .76), rgba(255, 248, 233, .64));
+      scrollbar-width: none;
+    }
+
+    .coursebook-area::-webkit-scrollbar {
+      display: none;
+    }
+
+    .coursebook-column {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .coursebook-card {
+      min-width: 0;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
     }
 
     .coursebook-note {
@@ -1561,8 +1639,21 @@
 
     .coursebook-card header {
       cursor: grab;
-      touch-action: none;
+      touch-action: pan-x pan-y;
       user-select: none;
+    }
+
+    .coursebook-card,
+    .coursebook-card .inside,
+    .coursebook-card button,
+    .coursebook-card label {
+      touch-action: pan-y;
+    }
+
+    @container coursebook (max-width: 620px) {
+      .coursebook-column {
+        grid-column: 1 / -1;
+      }
     }
 
     .coursebook-card[data-coursebook-card="notes"] header {
@@ -2045,6 +2136,9 @@
       min-height: 0;
       flex: 1;
       overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-x pan-y;
       border: 1px solid var(--line);
       border-radius: 16px;
       background: rgba(255, 255, 255, .9);
@@ -2251,6 +2345,34 @@
 
     .modal .inside {
       padding: 16px;
+    }
+
+    .general-notes-modal {
+      width: min(760px, 96vw);
+    }
+
+    .general-notes-paper {
+      width: 100%;
+      min-height: min(560px, 66vh);
+      max-height: 66vh;
+      resize: vertical;
+      overflow: auto;
+      padding: 22px 24px 22px 56px;
+      border: 1px solid #d9c782;
+      border-radius: 10px;
+      color: #27313d;
+      font: 18px/32px "Segoe UI", system-ui, sans-serif;
+      background:
+        linear-gradient(90deg, transparent 0 42px, rgba(211, 19, 53, .24) 42px 44px, transparent 44px),
+        repeating-linear-gradient(#fffdf2 0 31px, #bdd6e8 31px 32px);
+      box-shadow: inset 0 1px 8px rgba(91, 72, 16, .08);
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x pan-y;
+    }
+
+    .general-notes-status {
+      text-align: right;
+      min-height: 18px;
     }
 
     .checkbox-row {
@@ -2629,12 +2751,21 @@
     }
 
     .lock-screen {
+      --lock-visible-height: 100dvh;
       position: fixed;
       inset: 0;
       z-index: 9999;
       display: grid;
       place-items: center;
-      min-height: 100vh;
+      width: 100vw;
+      height: var(--lock-visible-height);
+      min-height: 0;
+      box-sizing: border-box;
+      padding:
+        max(8px, env(safe-area-inset-top))
+        max(8px, env(safe-area-inset-right))
+        max(8px, env(safe-area-inset-bottom))
+        max(8px, env(safe-area-inset-left));
       overflow: hidden;
       background: #fff;
     }
@@ -2656,10 +2787,13 @@
     }
 
     .lock-card {
+      --pattern-size: min(420px, 78vw, calc(var(--lock-visible-height) - 174px));
       position: relative;
       z-index: 1;
       width: min(620px, calc(100vw - 34px));
-      padding: 34px min(38px, 5vw) 30px;
+      max-height: calc(var(--lock-visible-height) - 16px);
+      box-sizing: border-box;
+      padding: clamp(10px, 3.5vh, 34px) min(38px, 5vw) clamp(10px, 3vh, 30px);
       border: 1px solid rgba(190, 222, 232, .9);
       border-radius: 24px;
       background: rgba(255, 255, 255, .68);
@@ -2679,17 +2813,17 @@
     }
 
     .lock-title {
-      font-size: 26px;
+      font-size: clamp(18px, 3.2vh, 26px);
       font-weight: 850;
       margin-bottom: 6px;
       text-shadow: 0 2px 12px rgba(255, 255, 255, .95), 0 1px 0 #fff;
     }
 
     .lock-hint {
-      min-height: 24px;
+      min-height: clamp(18px, 3vh, 24px);
       color: var(--muted);
       font-weight: 720;
-      margin: 8px 0 18px;
+      margin: clamp(3px, 1vh, 8px) 0 clamp(6px, 2vh, 18px);
       text-shadow: 0 2px 12px rgba(255, 255, 255, .95), 0 1px 0 #fff;
     }
 
@@ -2697,8 +2831,10 @@
       position: relative;
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: clamp(34px, 8vw, 51px);
-      width: min(420px, 78vw);
+      gap: clamp(6px, calc(var(--pattern-size) * .11), 51px);
+      width: max(104px, var(--pattern-size));
+      max-width: 100%;
+      max-height: calc(var(--lock-visible-height) - 174px);
       aspect-ratio: 1;
       margin: 0 auto;
       touch-action: none;
@@ -2728,10 +2864,10 @@
       z-index: 1;
       align-self: center;
       justify-self: center;
-      width: clamp(50px, 11vw, 63px);
-      min-width: clamp(50px, 11vw, 63px);
-      height: clamp(50px, 11vw, 63px);
-      min-height: clamp(50px, 11vw, 63px);
+      width: clamp(26px, calc(var(--pattern-size) * .15), 63px);
+      min-width: clamp(26px, calc(var(--pattern-size) * .15), 63px);
+      height: clamp(26px, calc(var(--pattern-size) * .15), 63px);
+      min-height: clamp(26px, calc(var(--pattern-size) * .15), 63px);
       padding: 0;
       border-radius: 50%;
       border: 3px solid rgba(8, 121, 149, .35);
@@ -2740,6 +2876,19 @@
       box-shadow:
         inset 0 2px 8px rgba(255, 255, 255, .85),
         0 8px 18px rgba(8, 121, 149, .18);
+    }
+
+    @media (max-height: 430px) {
+      .lock-card {
+        --pattern-size: min(310px, 66vw, calc(var(--lock-visible-height) - 112px));
+        padding-top: 7px;
+        padding-bottom: 7px;
+        border-radius: 16px;
+      }
+
+      .lock-title { margin-bottom: 0; }
+      .lock-hint { margin: 1px 0 4px; }
+      .pattern-grid { max-height: calc(var(--lock-visible-height) - 112px); }
     }
 
     .pattern-dot.active {
@@ -2795,6 +2944,9 @@
         <button type="button" class="calendar-icon-button" id="openCalendarBtn" title="Kalender öffnen" aria-label="Kalender öffnen">
           <img class="calendar-icon-image" src="calendar-icon.png" alt="" aria-hidden="true">
           <span class="calendar-badge hidden" id="calendarTodayBadge">0</span>
+        </button>
+        <button type="button" class="calendar-icon-button notes-icon-button" id="openGeneralNotesBtn" title="Allgemeine Notizen öffnen" aria-label="Allgemeine Notizen öffnen">
+          <img class="notes-icon-image" src="notes-icon.png" alt="" aria-hidden="true">
         </button>
       </div>
       <div class="course-heading">
@@ -3223,10 +3375,26 @@
     </section>
   </div>
 
+  <div id="generalNotesModal" class="modal-backdrop hidden">
+    <section class="modal general-notes-modal">
+      <header>
+        <span>Allgemeine Notizen</span>
+        <button type="button" class="icon" id="closeGeneralNotesBtn">x</button>
+      </header>
+      <div class="inside stack">
+        <textarea id="generalNotesInput" class="general-notes-paper" placeholder="Hier kannst du allgemeine Notizen, Erinnerungen und Ideen festhalten …"></textarea>
+        <div class="muted general-notes-status" id="generalNotesStatus">Wird automatisch gespeichert</div>
+      </div>
+    </section>
+  </div>
+
   <script>
     (() => {
       const STORAGE_KEY = "codex-lehrer-notenbuch-v10";
       const PREVIOUS_STORAGE_KEY = "codex-lehrer-notenbuch-v9";
+      const BACKUP_DB_NAME = "notenbuch-auto-backup";
+      const BACKUP_HANDLE_KEY = "daily-backup-file";
+      const BACKUP_LAST_DATE_KEY = "notenbuch-last-auto-backup-date";
       const WHEEL_POINTER_ANGLE = 0;
       const LOCK_PATTERNS = new Set(["0-4-8-6", "0-4-8-7-6"]);
       const STUDENT_PHOTO_SIZE = 320;
@@ -3428,6 +3596,15 @@
         const grid = $("#patternGrid");
         const screen = $("#lockScreen");
         if (!grid || !screen) return;
+        const syncLockViewport = () => {
+          const visibleHeight = Math.max(240, Math.round(window.visualViewport?.height || window.innerHeight || 600));
+          screen.style.setProperty("--lock-visible-height", `${visibleHeight}px`);
+          updateLockLine();
+        };
+        syncLockViewport();
+        window.addEventListener("resize", syncLockViewport);
+        window.addEventListener("orientationchange", syncLockViewport);
+        window.visualViewport?.addEventListener("resize", syncLockViewport);
         screen.addEventListener("click", () => {
           if (screen.classList.contains("pattern-visible")) return;
           resetLockPattern();
@@ -4244,6 +4421,7 @@
 
       function normalizeData(data) {
         if (!data || !Array.isArray(data.courses)) return createDefaultData();
+        data.generalNotes = String(data.generalNotes || "");
         data.groupBooks = Array.isArray(data.groupBooks) ? data.groupBooks : [];
         data.calendarEvents = Array.isArray(data.calendarEvents) ? data.calendarEvents : [];
         data.calendarShowBirthdays = data.calendarShowBirthdays !== false;
@@ -4485,6 +4663,18 @@
       function save() {
         syncAllAutomaticGradeColumns();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      function openGeneralNotes() {
+        const input = $("#generalNotesInput");
+        input.value = state.generalNotes || "";
+        $("#generalNotesStatus").textContent = "Wird automatisch gespeichert";
+        $("#generalNotesModal").classList.remove("hidden");
+        setTimeout(() => input.focus(), 0);
+      }
+
+      function closeGeneralNotes() {
+        $("#generalNotesModal").classList.add("hidden");
       }
 
       function currentCourse() {
@@ -5699,9 +5889,16 @@
           `
         };
 
+        const visibleCoursebookCards = book.cardOrder
+          .map((key) => cards[key])
+          .filter(Boolean);
+        const leftCoursebookCards = visibleCoursebookCards.filter((_, index) => index % 2 === 0);
+        const rightCoursebookCards = visibleCoursebookCards.filter((_, index) => index % 2 === 1);
+
         $("#mainContent").innerHTML = `
           <div class="coursebook-area">
-            ${book.cardOrder.map((key) => cards[key]).filter(Boolean).join("")}
+            <div class="coursebook-column">${leftCoursebookCards.join("")}</div>
+            <div class="coursebook-column">${rightCoursebookCards.join("")}</div>
           </div>
         `;
       }
@@ -6331,6 +6528,135 @@
         URL.revokeObjectURL(url);
       }
 
+      function backupPayload() {
+        syncAllAutomaticGradeColumns();
+        return JSON.stringify(state, null, 2);
+      }
+
+      function openBackupDatabase() {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(BACKUP_DB_NAME, 1);
+          request.onupgradeneeded = () => {
+            if (!request.result.objectStoreNames.contains("settings")) request.result.createObjectStore("settings");
+          };
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      async function storedBackupHandle() {
+        const database = await openBackupDatabase();
+        return new Promise((resolve, reject) => {
+          const transaction = database.transaction("settings", "readonly");
+          const request = transaction.objectStore("settings").get(BACKUP_HANDLE_KEY);
+          request.onsuccess = () => resolve(request.result || null);
+          request.onerror = () => reject(request.error);
+          transaction.oncomplete = () => database.close();
+        });
+      }
+
+      async function storeBackupHandle(handle) {
+        const database = await openBackupDatabase();
+        return new Promise((resolve, reject) => {
+          const transaction = database.transaction("settings", "readwrite");
+          transaction.objectStore("settings").put(handle, BACKUP_HANDLE_KEY);
+          transaction.oncomplete = () => {
+            database.close();
+            resolve();
+          };
+          transaction.onerror = () => reject(transaction.error);
+        });
+      }
+
+      async function writeBackupFile(handle) {
+        const writable = await handle.createWritable();
+        await writable.write(new Blob([backupPayload()], { type: "application/json" }));
+        await writable.close();
+        localStorage.setItem(BACKUP_LAST_DATE_KEY, todayIso());
+        updateBackupButtonStatus();
+      }
+
+      async function backupPermission(handle, request = false) {
+        if (!handle) return "denied";
+        const options = { mode: "readwrite" };
+        const current = await handle.queryPermission(options);
+        if (current === "granted" || !request) return current;
+        return handle.requestPermission(options);
+      }
+
+      async function configureAutomaticBackup() {
+        if (!("showSaveFilePicker" in window)) {
+          download(`notenbuch_sicherung_${todayIso()}.json`, backupPayload());
+          localStorage.setItem(BACKUP_LAST_DATE_KEY, todayIso());
+          updateBackupButtonStatus();
+          alert("Die heutige Sicherung wurde heruntergeladen. Auf iPad/iPhone wird künftig dienstags und donnerstags automatisch eine neue Sicherung mit Datum ausgelöst.");
+          return;
+        }
+        try {
+          let handle = await storedBackupHandle();
+          if (!handle) {
+            handle = await window.showSaveFilePicker({
+              suggestedName: "notenbuch_sicherung.json",
+              types: [{ description: "NOTENBUCH-Sicherung", accept: { "application/json": [".json"] } }]
+            });
+            await storeBackupHandle(handle);
+          }
+          const permission = await backupPermission(handle, true);
+          if (permission !== "granted") throw new Error("Der Speicherort wurde nicht freigegeben.");
+          await writeBackupFile(handle);
+          alert("Die automatische Sicherung ist eingerichtet. Dienstags und donnerstags wird diese Datei beim ersten Öffnen der App ohne Nachfrage überschrieben.");
+        } catch (error) {
+          if (error?.name !== "AbortError") alert(error.message || "Die automatische Sicherung konnte nicht eingerichtet werden.");
+        }
+      }
+
+      function isScheduledBackupDay(date = new Date()) {
+        return date.getDay() === 2 || date.getDay() === 4;
+      }
+
+      async function runAutomaticScheduledBackup() {
+        if (!isScheduledBackupDay()) return;
+        if (localStorage.getItem(BACKUP_LAST_DATE_KEY) === todayIso()) return;
+        if (!("showSaveFilePicker" in window)) {
+          download(`notenbuch_sicherung_${todayIso()}.json`, backupPayload());
+          localStorage.setItem(BACKUP_LAST_DATE_KEY, todayIso());
+          updateBackupButtonStatus();
+          return;
+        }
+        try {
+          const handle = await storedBackupHandle();
+          if (!handle || await backupPermission(handle, false) !== "granted") {
+            updateBackupButtonStatus();
+            return;
+          }
+          await writeBackupFile(handle);
+        } catch {
+          updateBackupButtonStatus();
+        }
+      }
+
+      async function updateBackupButtonStatus() {
+        const button = $("#exportBtn");
+        if (!button) return;
+        const lastDate = localStorage.getItem(BACKUP_LAST_DATE_KEY);
+        if (!("showSaveFilePicker" in window)) {
+          button.title = `Automatischer Download dienstags und donnerstags aktiv${lastDate ? ` · zuletzt ${formatDate(lastDate)}` : ""}`;
+          button.setAttribute("aria-label", button.title);
+          return;
+        }
+        let configured = false;
+        try {
+          const handle = await storedBackupHandle();
+          configured = Boolean(handle && await backupPermission(handle, false) === "granted");
+        } catch {
+          configured = false;
+        }
+        button.title = configured
+          ? `Automatische Sicherung dienstags und donnerstags aktiv${lastDate ? ` · zuletzt ${formatDate(lastDate)}` : ""}`
+          : "Automatische Sicherung für Dienstag und Donnerstag einrichten";
+        button.setAttribute("aria-label", button.title);
+      }
+
       function exportCsv(course) {
         const header = ["Schüler", ...course.gradeColumns.map((column) => column.title), "Ø 1HJ", "Ø 2HJ", annualExportLabel(course)];
         const rows = course.students.map((student) => [
@@ -6586,18 +6912,40 @@
 
       function importRoleOptions(selected = "") {
         return [
-          ["", "Ignorieren"], ["fullName", "Vollständiger Name"], ["firstName", "Vorname"],
+          ["", "Ignorieren"], ["fullName", "Vollständiger Name"],
+          ["lastFirstComma", "Nachname, Vorname"], ["firstLastComma", "Vorname, Nachname"],
+          ["firstName", "Vorname"],
           ["lastName", "Nachname"], ["birthdate", "Geburtsdatum"]
         ].map(([value, label]) => `<option value="${value}"${value === selected ? " selected" : ""}>${label}</option>`).join("");
       }
 
       function guessedImportRole(header) {
+        const lower = normalizeText(header).toLowerCase();
         const key = nameKey(header);
+        if (lower.includes("nachname") && lower.includes("vorname")) {
+          return lower.indexOf("nachname") < lower.indexOf("vorname") ? "lastFirstComma" : "firstLastComma";
+        }
         if (key.includes("vorname") || key === "givenname") return "firstName";
         if (key.includes("nachname") || key.includes("familienname") || key === "surname") return "lastName";
         if (key.includes("geburt") || key.includes("birth")) return "birthdate";
         if (key === "name" || key.includes("schuler") || key.includes("student")) return "fullName";
         return "";
+      }
+
+      function splitMappedImportName(value, format = "fullName") {
+        const text = normalizeText(value);
+        if (!text) return { firstName: "", lastName: "" };
+        if (format === "lastFirstComma" || format === "firstLastComma") {
+          const commaIndex = text.indexOf(",");
+          if (commaIndex >= 0) {
+            const before = normalizeText(text.slice(0, commaIndex));
+            const after = normalizeText(text.slice(commaIndex + 1));
+            return format === "lastFirstComma"
+              ? { firstName: after, lastName: before }
+              : { firstName: before, lastName: after };
+          }
+        }
+        return splitStudentName(text);
       }
 
       function renderStudentImportPreview() {
@@ -6633,14 +6981,18 @@
         $$("[data-import-column-role]").forEach((select) => {
           if (select.value) mapping[select.value] = Number(select.dataset.importColumnRole);
         });
-        if (mapping.fullName == null && mapping.firstName == null && mapping.lastName == null) {
+        if (mapping.fullName == null && mapping.lastFirstComma == null && mapping.firstLastComma == null && mapping.firstName == null && mapping.lastName == null) {
           alert("Bitte ordne mindestens eine Namensspalte zu.");
           return;
         }
         const hasHeader = $("#studentImportHasHeader").checked;
         const imported = (view.studentImportRows || []).slice(hasHeader ? 1 : 0).map((row) => {
-          const full = mapping.fullName == null ? "" : normalizeText(row[mapping.fullName]);
-          const split = splitStudentName(full);
+          const combinedFormat = mapping.lastFirstComma != null
+            ? "lastFirstComma"
+            : mapping.firstLastComma != null ? "firstLastComma" : "fullName";
+          const combinedColumn = mapping[combinedFormat];
+          const full = combinedColumn == null ? "" : normalizeText(row[combinedColumn]);
+          const split = splitMappedImportName(full, combinedFormat);
           const firstName = mapping.firstName == null ? split.firstName : normalizeText(row[mapping.firstName]);
           const lastName = mapping.lastName == null ? split.lastName : normalizeText(row[mapping.lastName]);
           const name = fullStudentName({ firstName, lastName, name: full });
@@ -7652,6 +8004,7 @@
       $("#mainContent").addEventListener("pointerdown", (event) => {
         const tile = event.target.closest("[data-seat-student]");
         if (!tile || view.tab !== "seating") return;
+        if (event.pointerType === "touch") return;
         const rect = tile.getBoundingClientRect();
         view.seatingDrag = {
           studentId: tile.dataset.seatStudent,
@@ -7716,6 +8069,7 @@
         const header = event.target.closest(".coursebook-card > header");
         const card = header?.closest("[data-coursebook-card]");
         if (!card) return;
+        if (event.pointerType === "touch") return;
         view.coursebookDragKey = card.dataset.coursebookCard;
         view.coursebookDropKey = null;
         view.coursebookDropAfter = false;
@@ -7785,6 +8139,7 @@
       $("#courseList").addEventListener("pointerdown", (event) => {
         const item = event.target.closest(".course-item[data-course-id]");
         if (!item || event.target.closest("[data-open-course-menu]")) return;
+        if (event.pointerType === "touch") return;
         if (event.pointerType === "mouse" && event.button !== 0) return;
         clearCourseDragState();
         view.courseDragId = item.dataset.courseId;
@@ -7799,13 +8154,11 @@
         view.courseDragTimer = setTimeout(() => {
           startCourseDrag(item, event.pointerId);
         }, 360);
-        if (event.pointerType === "touch") event.preventDefault();
       });
 
       $("#courseList").addEventListener("pointermove", (event) => {
         if (!view.courseDragId || view.courseDragPointerId !== event.pointerId) return;
         if (!view.courseDragActive) {
-          if (event.pointerType === "touch") event.preventDefault();
           return;
         }
         const scroller = $("#courseList").parentElement;
@@ -8065,6 +8418,13 @@
       $("#newStudentBtn").addEventListener("click", openNewStudentModal);
       $("#homeLogo").addEventListener("click", showCourseListOnly);
       $("#openCalendarBtn").addEventListener("click", () => openCalendarView(view.calendarDate || todayIso()));
+      $("#openGeneralNotesBtn").addEventListener("click", openGeneralNotes);
+      $("#closeGeneralNotesBtn").addEventListener("click", closeGeneralNotes);
+      $("#generalNotesInput").addEventListener("input", (event) => {
+        state.generalNotes = event.target.value;
+        save();
+        $("#generalNotesStatus").textContent = "Gespeichert";
+      });
       $("#closeCalendarViewBtn").addEventListener("click", closeCalendarView);
       $("#newCalendarEventBtn").addEventListener("click", () => openCalendarEventModal("", view.calendarDate || todayIso()));
       $("#closeCalendarEventModalBtn").addEventListener("click", closeCalendarEventModal);
@@ -8141,6 +8501,10 @@
 
       $("#calendarEventModal").addEventListener("click", (event) => {
         if (event.target.id === "calendarEventModal") closeCalendarEventModal();
+      });
+
+      $("#generalNotesModal").addEventListener("click", (event) => {
+        if (event.target.id === "generalNotesModal") closeGeneralNotes();
       });
 
       $("#calendarView").addEventListener("click", (event) => {
@@ -8389,9 +8753,7 @@
         }
       });
 
-      $("#exportBtn").addEventListener("click", () => {
-        download(`notenbuch_sicherung_${todayIso()}.json`, JSON.stringify(state, null, 2));
-      });
+      $("#exportBtn").addEventListener("click", configureAutomaticBackup);
 
       $("#importBtn").addEventListener("click", () => $("#importFile").click());
 
@@ -8666,6 +9028,9 @@
 
       setupLockScreen();
       render();
+      updateBackupButtonStatus();
+      runAutomaticScheduledBackup();
+      setInterval(runAutomaticScheduledBackup, 10 * 60 * 1000);
       setInterval(renderCalendarBadge, 60000);
     })();
   </script>
