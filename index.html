@@ -1601,11 +1601,16 @@
     .checklist-detail-panel > .inside {
       min-height: 0;
       flex: 1;
+      display: block;
       overflow-x: hidden;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
       touch-action: pan-y;
+    }
+
+    .checklist-detail-panel > .inside > .mark-table {
+      margin-bottom: 12px;
     }
 
     .checklist-detail-panel .mark-table,
