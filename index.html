@@ -1253,6 +1253,52 @@
       transform: scale(1.04);
     }
 
+    button.round-image-button.grade-photo-toggle {
+      width: 56px;
+      min-width: 56px;
+      height: 56px;
+      min-height: 56px;
+      padding: 0;
+      overflow: hidden;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    button.round-image-button.grade-photo-toggle span {
+      width: 58px;
+      height: 58px;
+      display: grid;
+      place-items: center;
+      font-size: 54px;
+      line-height: 1;
+      transform: scale(1.08);
+      pointer-events: none;
+    }
+
+    button.round-image-button.grade-photo-toggle.active {
+      filter: drop-shadow(0 0 9px rgba(8, 121, 149, .7));
+      transform: scale(1.04);
+    }
+
+    .grade-student-photo {
+      width: 54px;
+      height: 54px;
+      min-height: 54px;
+      padding: 0;
+      display: inline-grid;
+      place-items: center;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .grade-student-photo .avatar {
+      width: 48px;
+      height: 48px;
+    }
+
     .grade-table.privacy-active tbody tr {
       cursor: pointer;
     }
@@ -3723,6 +3769,7 @@
         expandedGradeCategory: null,
         gradePrivacy: false,
         gradePrivacyStudentId: null,
+        gradePhotoMode: false,
         calendarMode: "month",
         calendarDate: todayIso(),
         calendarFocusEventId: null,
@@ -5954,6 +6001,7 @@
 
       function renderGrades(course) {
         const privacyActive = Boolean(view.gradePrivacy);
+        const photoMode = Boolean(view.gradePhotoMode);
         const revealedStudentId = view.gradePrivacyStudentId;
         const categories = gradeCategoriesForCourse(course).map((key) => ({
           key,
@@ -5992,10 +6040,13 @@
             `;
           }).join("");
           const avgAll = averageFor(course, student.id, "all");
+          const studentIdentity = photoMode
+            ? `<button type="button" class="grade-student-photo" data-open-student-overview="${escapeHtml(student.id)}" title="${escapeHtml(lastFirstStudentName(student))}" aria-label="${escapeHtml(lastFirstStudentName(student))}"><span class="avatar">${student.photo ? `<img src="${escapeHtml(student.photo)}" alt="${escapeHtml(lastFirstStudentName(student))}">` : escapeHtml(initials(student.name))}</span></button>`
+            : `<button type="button" class="student-name-link${privacyActive ? " privacy-toggle" : ""}" data-open-student-overview="${escapeHtml(student.id)}">${escapeHtml(lastFirstStudentName(student))}</button>`;
           return `
             <tr class="${privacyActive && showGrades ? "privacy-revealed" : ""}" data-grade-privacy-student="${escapeHtml(student.id)}">
               <td class="name-col student-cell">
-                <button type="button" class="student-name-link${privacyActive ? " privacy-toggle" : ""}" data-open-student-overview="${escapeHtml(student.id)}">${escapeHtml(lastFirstStudentName(student))}</button>
+                ${studentIdentity}
               </td>
               ${cells}
               <td class="avg-cell grade-total-avg ${showGrades && isBadAverage(course, avgAll) ? "bad" : ""}">${showGrades ? formatAverage(course, avgAll) : `<span class="avg-mask">*</span>`}</td>
@@ -6031,6 +6082,7 @@
               <button type="button" class="round-image-button incognito-button${privacyActive ? " active" : ""}" id="toggleGradePrivacyBtn" title="Inkognito-Modus" aria-label="Inkognito-Modus" aria-pressed="${privacyActive ? "true" : "false"}">
                 <img class="button-art" src="button-incognito.png" alt="">
               </button>
+              <button type="button" class="round-image-button grade-photo-toggle${photoMode ? " active" : ""}" id="toggleGradePhotosBtn" title="Zwischen Namen und Bildern wechseln" aria-label="Zwischen Namen und Bildern wechseln" aria-pressed="${photoMode ? "true" : "false"}"><span>🙂</span></button>
             </div>
           </div>
           <div class="table-wrap">
@@ -9451,6 +9503,12 @@
         const studentPhoto = event.target.closest("[data-enlarge-student-photo]");
         if (studentPhoto) {
           openStudentPhotoLightbox(studentPhoto);
+          return;
+        }
+
+        if (event.target.id === "toggleGradePhotosBtn") {
+          view.gradePhotoMode = !view.gradePhotoMode;
+          keepScrollWhile(() => renderGrades(currentCourse()));
           return;
         }
 
