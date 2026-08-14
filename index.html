@@ -6051,8 +6051,8 @@
               <td class="name-col student-cell">
                 ${studentIdentity}
               </td>
-              ${cells}
               <td class="avg-cell grade-total-avg ${showGrades && isBadAverage(course, avgAll) ? "bad" : ""}">${showGrades ? formatAverage(course, avgAll) : `<span class="avg-mask">*</span>`}</td>
+              ${cells}
             </tr>
           `;
         }).join("");
@@ -6093,8 +6093,8 @@
               <thead>
                 <tr>
                   <th class="name-col avg-head" rowspan="2">Schüler</th>
-                  ${groupHeads}
                   <th class="grade-group-head grade-total-avg" rowspan="2">${escapeHtml(overallGradeLabel(course))}</th>
+                  ${groupHeads}
                 </tr>
                 <tr>
                   ${columnHeads}
