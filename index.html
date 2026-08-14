@@ -1928,7 +1928,7 @@
       overflow: auto;
       padding: 20px;
       display: grid;
-      grid-template-columns: minmax(300px, 420px) 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 20px;
       align-content: start;
       align-items: start;
@@ -1965,6 +1965,55 @@
       height: 100%;
       object-fit: cover;
       display: block;
+    }
+
+    button.student-profile-image {
+      min-height: 0;
+      padding: 0;
+      border: 0;
+      cursor: zoom-in;
+      box-shadow: none;
+    }
+
+    button.student-profile-image:hover {
+      border: 0;
+      background: #9ca3ad;
+      box-shadow: 0 10px 24px rgba(20, 35, 50, .2);
+      transform: scale(1.02);
+    }
+
+    .student-photo-lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: grid;
+      place-items: center;
+      padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+      background: rgba(5, 14, 22, .88);
+      cursor: zoom-out;
+      backdrop-filter: blur(8px);
+    }
+
+    .student-photo-lightbox-content {
+      width: min(86vw, 820px);
+      height: min(86vh, 820px);
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      overflow: hidden;
+      background: #9ca3ad;
+      color: #fff;
+      font-size: clamp(72px, 18vw, 190px);
+      font-weight: 850;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, .48);
+    }
+
+    .student-photo-lightbox-content img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;
+      background: #111a20;
     }
 
     .plain-section {
@@ -3437,6 +3486,9 @@
           <button type="submit" class="primary">Speichern</button>
         </form>
       </section>
+    </div>
+    <div id="studentPhotoLightbox" class="student-photo-lightbox hidden" aria-hidden="true" aria-label="Vergrößertes Schülerbild">
+      <div id="studentPhotoLightboxContent" class="student-photo-lightbox-content"></div>
     </div>
     <div id="randomModal" class="modal-backdrop hidden">
       <section class="modal random-modal">
@@ -6650,6 +6702,20 @@
         $("#oralModal").classList.add("hidden");
       }
 
+      function openStudentPhotoLightbox(source) {
+        const lightbox = $("#studentPhotoLightbox");
+        $("#studentPhotoLightboxContent").innerHTML = source.innerHTML;
+        lightbox.classList.remove("hidden");
+        lightbox.setAttribute("aria-hidden", "false");
+      }
+
+      function closeStudentPhotoLightbox() {
+        const lightbox = $("#studentPhotoLightbox");
+        lightbox.classList.add("hidden");
+        lightbox.setAttribute("aria-hidden", "true");
+        $("#studentPhotoLightboxContent").innerHTML = "";
+      }
+
       function renderNotes(course) {
         const student = currentStudent(course);
         if (!student) {
@@ -6714,7 +6780,7 @@
                     <div class="data-line"><span class="muted">Vorname</span><span>${escapeHtml(student.firstName || "")}</span></div>
                     <div class="data-line"><span class="muted">Nachname</span><span>${escapeHtml(student.lastName || "")}</span></div>
                     <div class="data-line"><span class="muted">Geburtstag</span><span>${sharedBirthdate ? formatDate(sharedBirthdate) : "/"}</span></div>
-                    <div class="data-line"><span class="muted">Bild</span><span class="student-profile-image">${student.photo ? `<img src="${escapeHtml(student.photo)}" alt="">` : escapeHtml(initials(student.name))}</span></div>
+                    <div class="data-line"><span class="muted">Bild</span><button type="button" class="student-profile-image" data-enlarge-student-photo aria-label="Schülerbild von ${escapeHtml(student.name)} vergrößern">${student.photo ? `<img src="${escapeHtml(student.photo)}" alt="${escapeHtml(student.name)}">` : escapeHtml(initials(student.name))}</button></div>
                     ${student.notes ? `<div class="data-line"><span class="muted">Notiz</span><span>${escapeHtml(student.notes)}</span></div>` : ""}
                   </div>
                 </div>
@@ -9142,6 +9208,8 @@
         if (event.target.id === "nameGameModal") closeNameLearning();
       });
 
+      $("#studentPhotoLightbox").addEventListener("click", closeStudentPhotoLightbox);
+
       function toggleCoursesPanel() {
         $("#workspace").classList.toggle("courses-collapsed");
         $("#coursesPanel").classList.toggle("collapsed");
@@ -9395,6 +9463,12 @@
       });
 
       $("#mainContent").addEventListener("click", (event) => {
+        const studentPhoto = event.target.closest("[data-enlarge-student-photo]");
+        if (studentPhoto) {
+          openStudentPhotoLightbox(studentPhoto);
+          return;
+        }
+
         if (event.target.id === "toggleGradePrivacyBtn") {
           view.gradePrivacy = !view.gradePrivacy;
           view.gradePrivacyStudentId = null;
