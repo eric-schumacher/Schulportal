@@ -1497,26 +1497,6 @@
       background: linear-gradient(135deg, rgba(232, 247, 251, .76), rgba(255, 248, 233, .64));
     }
 
-    .seating-toolbar {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 12px;
-    }
-
-    .seating-toolbar-group {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .seating-mode-button.active {
-      border-color: var(--gold);
-      background: linear-gradient(135deg, #fff3cf, #fff9eb);
-      color: #4a3300;
-    }
-
     .seating-board {
       position: relative;
       flex: 1;
@@ -1551,10 +1531,11 @@
       border-radius: 8px;
       background: #fff;
       display: grid;
-      grid-template-rows: auto 1fr auto;
+      grid-template-rows: auto auto;
+      justify-items: center;
       gap: 6px;
       padding: 8px;
-      text-align: left;
+      text-align: center;
       cursor: grab;
       touch-action: none;
       user-select: none;
@@ -1572,55 +1553,6 @@
       z-index: 4;
       box-shadow: var(--shadow);
       cursor: grabbing;
-    }
-
-    .seat-tile.marked-homework {
-      box-shadow: inset 4px 0 0 var(--danger);
-    }
-
-    .seat-tile.marked-material {
-      border-color: var(--accent);
-    }
-
-    .seat-table {
-      position: absolute;
-      width: 220px;
-      height: 72px;
-      border: 3px solid #9b6a36;
-      border-radius: 14px;
-      display: grid;
-      place-items: center;
-      background: linear-gradient(145deg, #f0c78d, #dba763);
-      color: #52310d;
-      font-size: 17px;
-      font-weight: 850;
-      cursor: grab;
-      touch-action: none;
-      user-select: none;
-      box-shadow: 0 10px 20px rgba(83, 49, 12, .2);
-    }
-
-    .seat-table.dragging {
-      z-index: 5;
-      cursor: grabbing;
-      box-shadow: 0 16px 30px rgba(83, 49, 12, .3);
-    }
-
-    .seating-plan-controls {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      flex-wrap: wrap;
-    }
-
-    .seating-plan-controls select {
-      width: auto;
-      min-width: 125px;
-    }
-
-    .seating-tool-button {
-      min-height: 36px;
-      white-space: nowrap;
     }
 
     .daily-overview-modal {
@@ -1708,19 +1640,6 @@
       font-size: 14px;
       font-weight: 780;
       overflow-wrap: anywhere;
-    }
-
-    .seat-stats {
-      display: flex;
-      gap: 4px;
-      flex-wrap: wrap;
-    }
-
-    .seat-stats .pill {
-      min-width: 0;
-      min-height: 22px;
-      padding: 1px 7px;
-      font-size: 12px;
     }
 
     .tracking-table th,
@@ -4863,15 +4782,8 @@
                 };
               }
             });
-            plan.tables = Array.isArray(plan.tables) ? plan.tables.map((table, tableIndex) => ({
-              id: table.id || uid("table"),
-              label: normalizeText(table.label || `Tisch ${tableIndex + 1}`),
-              x: Number.isFinite(Number(table.x)) ? Number(table.x) : 24,
-              y: Number.isFinite(Number(table.y)) ? Number(table.y) : 24,
-              width: Math.max(120, Number(table.width) || 220),
-              height: Math.max(54, Number(table.height) || 72)
-            })) : [];
-            plan.tileScale = [0.85, 1, 1.2].includes(Number(plan.tileScale)) ? Number(plan.tileScale) : 1;
+            plan.tables = [];
+            plan.tileScale = 1;
             plan.gridSize = [16, 24, 32, 40].includes(Number(plan.gridSize)) ? Number(plan.gridSize) : 24;
           });
           if (!course.seatingPlans.some((plan) => plan.id === course.activeSeatingPlanId)) {
@@ -6248,74 +6160,29 @@
       }
 
       function renderSeating(course) {
-        const labels = absenceLabels(course);
         const plan = currentSeatingPlan(course);
         const seatingStudents = orderedSeatStudents(course);
         if (ensureSeatPositions(course, seatingStudents)) save();
-        const todayMarks = todaySeatingMarks(course);
-        const tileScale = Number(plan.tileScale) || 1;
-        const tileWidth = Math.round(132 * tileScale);
-        const tileHeight = Math.round(96 * tileScale);
-        const maxX = Math.max(0, ...seatingStudents.map((student) => (plan.positions?.[student.id]?.x || 0) + tileWidth + 22), ...plan.tables.map((table) => table.x + table.width + 22));
-        const maxY = Math.max(0, ...seatingStudents.map((student) => (plan.positions?.[student.id]?.y || 0) + tileHeight + 22), ...plan.tables.map((table) => table.y + table.height + 22));
+        const tileWidth = 132;
+        const tileHeight = 96;
+        const maxX = Math.max(0, ...seatingStudents.map((student) => (plan.positions?.[student.id]?.x || 0) + tileWidth + 22));
+        const maxY = Math.max(0, ...seatingStudents.map((student) => (plan.positions?.[student.id]?.y || 0) + tileHeight + 22));
         const boardWidth = Math.max(1600, maxX + 24);
         const boardHeight = Math.max(680, maxY + 24);
-        const tables = plan.tables.map((table) => `
-          <button type="button" class="seat-table" data-seat-table="${escapeHtml(table.id)}" style="left:${Math.max(0, Number(table.x) || 0)}px; top:${Math.max(0, Number(table.y) || 0)}px; width:${Math.max(120, Number(table.width) || 220)}px; height:${Math.max(54, Number(table.height) || 72)}px;">${escapeHtml(table.label)}</button>
-        `).join("");
         const tiles = seatingStudents.map((student) => {
           const active = student.id === view.selectedStudentId ? " active" : "";
-          const markedHomework = todayMarks.homework.has(student.id) ? " marked-homework" : "";
-          const markedMaterial = todayMarks.material.has(student.id) ? " marked-material" : "";
-          const counts = studentCounts(course, student.id);
           const position = plan.positions?.[student.id] || defaultSeatPosition(0);
           return `
-            <button type="button" class="seat-tile${active}${markedHomework}${markedMaterial}" data-seat-student="${escapeHtml(student.id)}" style="left:${Math.max(0, Number(position.x) || 0)}px; top:${Math.max(0, Number(position.y) || 0)}px; width:${tileWidth}px; min-height:${tileHeight}px; padding:${Math.max(6, Math.round(8 * tileScale))}px;">
+            <button type="button" class="seat-tile${active}" data-seat-student="${escapeHtml(student.id)}" style="left:${Math.max(0, Number(position.x) || 0)}px; top:${Math.max(0, Number(position.y) || 0)}px; width:${tileWidth}px; min-height:${tileHeight}px; padding:8px;">
               <span class="avatar">${student.photo ? `<img src="${escapeHtml(student.photo)}" alt="">` : escapeHtml(initials(student.name))}</span>
               <span class="seat-name">${escapeHtml(student.name)}</span>
-              <span class="seat-stats">
-                <span class="pill">${escapeHtml(labels.homeworkShort)} ${counts.homework}</span>
-                <span class="pill">${escapeHtml(isSportCourse(course) ? "Sportmat." : "Mat")} ${counts.material}</span>
-              </span>
             </button>
           `;
         }).join("");
         $("#mainContent").innerHTML = `
           <div class="seating-area">
-            <div class="seating-toolbar">
-              <div class="seating-plan-controls">
-                <select id="seatingPlanSelect" aria-label="Sitzplan auswählen">
-                  ${course.seatingPlans.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === plan.id ? "selected" : ""}>${escapeHtml(item.name)}</option>`).join("")}
-                </select>
-                <button type="button" class="seating-tool-button" id="newSeatingPlanBtn">Neuer Plan</button>
-                <button type="button" class="seating-tool-button" id="renameSeatingPlanBtn">Umbenennen</button>
-                <button type="button" class="seating-tool-button" id="deleteSeatingPlanBtn" ${course.seatingPlans.length <= 1 ? "disabled" : ""}>Plan löschen</button>
-              </div>
-              <div class="seating-plan-controls">
-                <button type="button" class="seating-tool-button" id="addSeatTableBtn">Tisch hinzufügen</button>
-                <button type="button" class="seating-tool-button" id="removeSeatTableBtn" ${plan.tables.length ? "" : "disabled"}>Letzten Tisch löschen</button>
-                <label>Schülergröße
-                  <select id="seatTileScaleSelect">
-                    <option value="0.85" ${tileScale === .85 ? "selected" : ""}>Klein</option>
-                    <option value="1" ${tileScale === 1 ? "selected" : ""}>Normal</option>
-                    <option value="1.2" ${tileScale === 1.2 ? "selected" : ""}>Groß</option>
-                  </select>
-                </label>
-                <label>Raster
-                  <select id="seatGridSizeSelect">
-                    ${[16, 24, 32, 40].map((size) => `<option value="${size}" ${Number(plan.gridSize) === size ? "selected" : ""}>${size}px</option>`).join("")}
-                  </select>
-                </label>
-                <button type="button" class="seating-tool-button" id="shuffleSeatingBtn">Mischen</button>
-              </div>
-              <div class="seating-toolbar-group">
-                <button type="button" class="seating-mode-button${view.seatingMode === "homework" ? " active" : ""}" data-seating-mode="homework">${escapeHtml(labels.homeworkButton)}</button>
-                <button type="button" class="seating-mode-button${view.seatingMode === "material" ? " active" : ""}" data-seating-mode="material">${escapeHtml(labels.materialButton)}</button>
-              </div>
-            </div>
             <div class="seating-board" id="seatingBoard" style="--seat-grid-size:${Number(plan.gridSize) || 24}px;">
               <div class="seating-canvas" id="seatingCanvas" style="width:${boardWidth}px; min-height:${boardHeight}px;">
-                ${tables}
                 ${tiles || `<div class="empty-state">Bitte links Schüler hinzufügen.</div>`}
               </div>
             </div>
@@ -8544,12 +8411,11 @@
       }, true);
 
       $("#mainContent").addEventListener("pointerdown", (event) => {
-        const item = event.target.closest("[data-seat-student], [data-seat-table]");
+        const item = event.target.closest("[data-seat-student]");
         if (!item || view.tab !== "seating") return;
         const rect = item.getBoundingClientRect();
         view.seatingDrag = {
-          kind: item.dataset.seatTable ? "table" : "student",
-          itemId: item.dataset.seatTable || item.dataset.seatStudent,
+          itemId: item.dataset.seatStudent,
           pointerId: event.pointerId,
           offsetX: event.clientX - rect.left,
           offsetY: event.clientY - rect.top,
@@ -8569,9 +8435,7 @@
         if (!drag || drag.pointerId !== event.pointerId) return;
         const board = $("#seatingBoard");
         const canvas = $("#seatingCanvas");
-        const item = drag.kind === "table"
-          ? $$("[data-seat-table]").find((element) => element.dataset.seatTable === drag.itemId)
-          : $$("[data-seat-student]").find((element) => element.dataset.seatStudent === drag.itemId);
+        const item = $$("[data-seat-student]").find((element) => element.dataset.seatStudent === drag.itemId);
         if (!board || !canvas || !item) return;
         const plan = currentSeatingPlan();
         const canvasRect = canvas.getBoundingClientRect();
@@ -8590,30 +8454,23 @@
       $("#mainContent").addEventListener("pointerup", (event) => {
         const drag = view.seatingDrag;
         if (!drag || drag.pointerId !== event.pointerId) return;
-        const item = drag.kind === "table"
-          ? $$("[data-seat-table]").find((element) => element.dataset.seatTable === drag.itemId)
-          : $$("[data-seat-student]").find((element) => element.dataset.seatStudent === drag.itemId);
+        const item = $$("[data-seat-student]").find((element) => element.dataset.seatStudent === drag.itemId);
         item?.classList.remove("dragging");
         item?.releasePointerCapture?.(event.pointerId);
         const course = currentCourse();
         const plan = currentSeatingPlan(course);
-        if (drag.kind === "table") {
-          const table = plan.tables.find((entry) => entry.id === drag.itemId);
-          if (table) Object.assign(table, { x: Math.max(0, drag.x), y: Math.max(0, drag.y) });
-        } else {
-          plan.positions[drag.itemId] = { x: Math.max(0, drag.x), y: Math.max(0, drag.y) };
-          course.seatPositions = plan.positions;
-        }
+        plan.positions[drag.itemId] = { x: Math.max(0, drag.x), y: Math.max(0, drag.y) };
+        course.seatPositions = plan.positions;
         save();
         view.seatingDrag = null;
         view.seatingSuppressClickUntil = Date.now() + 250;
-        if (!drag.moved && drag.kind === "student") handleSeatingStudentTap(drag.itemId);
+        if (!drag.moved) handleSeatingStudentTap(drag.itemId);
       });
 
       $("#mainContent").addEventListener("pointercancel", (event) => {
         const drag = view.seatingDrag;
         if (!drag || drag.pointerId !== event.pointerId) return;
-        $$("[data-seat-student], [data-seat-table]").forEach((item) => item.classList.remove("dragging"));
+        $$("[data-seat-student]").forEach((item) => item.classList.remove("dragging"));
         view.seatingDrag = null;
         view.seatingSuppressClickUntil = Date.now() + 250;
       });
@@ -9476,40 +9333,6 @@
       $("#mainContent").addEventListener("change", (event) => {
         if (event.target.classList.contains("grade-input")) render();
 
-        if (event.target.id === "seatingPlanSelect") {
-          const course = currentCourse();
-          course.activeSeatingPlanId = event.target.value;
-          currentSeatingPlan(course);
-          save();
-          renderSeating(course);
-          return;
-        }
-
-        if (event.target.id === "seatTileScaleSelect") {
-          const course = currentCourse();
-          currentSeatingPlan(course).tileScale = Number(event.target.value) || 1;
-          save();
-          renderSeating(course);
-          return;
-        }
-
-        if (event.target.id === "seatGridSizeSelect") {
-          const course = currentCourse();
-          const plan = currentSeatingPlan(course);
-          plan.gridSize = Number(event.target.value) || 24;
-          Object.values(plan.positions).forEach((position) => {
-            position.x = snapSeatValue(position.x, plan);
-            position.y = snapSeatValue(position.y, plan);
-          });
-          plan.tables.forEach((table) => {
-            table.x = snapSeatValue(table.x, plan);
-            table.y = snapSeatValue(table.y, plan);
-          });
-          save();
-          renderSeating(course);
-          return;
-        }
-
         if (event.target.id === "openOnlyToggle") {
           const list = currentChecklist();
           if (!list) return;
@@ -9562,86 +9385,6 @@
         if (seatTile) {
           if (Date.now() < view.seatingSuppressClickUntil) return;
           handleSeatingStudentTap(seatTile.dataset.seatStudent);
-          return;
-        }
-
-        const seatingModeButton = event.target.closest("[data-seating-mode]");
-        if (seatingModeButton) {
-          const mode = seatingModeButton.dataset.seatingMode;
-          view.seatingMode = view.seatingMode === mode ? null : mode;
-          renderSeating(currentCourse());
-          return;
-        }
-
-        if (event.target.id === "newSeatingPlanBtn") {
-          const course = currentCourse();
-          const currentPlan = currentSeatingPlan(course);
-          const name = `Sitzplan ${course.seatingPlans.length + 1}`;
-          const plan = {
-            id: uid("sp"),
-            name,
-            positions: Object.fromEntries(Object.entries(currentPlan.positions).map(([id, position]) => [id, { ...position }])),
-            tables: currentPlan.tables.map((table) => ({ ...table, id: uid("table") })),
-            tileScale: currentPlan.tileScale,
-            gridSize: currentPlan.gridSize
-          };
-          course.seatingPlans.push(plan);
-          course.activeSeatingPlanId = plan.id;
-          course.seatPositions = plan.positions;
-          save();
-          renderSeating(course);
-          return;
-        }
-
-        if (event.target.id === "renameSeatingPlanBtn") {
-          const course = currentCourse();
-          const plan = currentSeatingPlan(course);
-          const name = normalizeText(prompt("Neuer Name des Sitzplans:", plan.name));
-          if (!name) return;
-          plan.name = name;
-          save();
-          renderSeating(course);
-          return;
-        }
-
-        if (event.target.id === "deleteSeatingPlanBtn") {
-          const course = currentCourse();
-          const plan = currentSeatingPlan(course);
-          if (course.seatingPlans.length <= 1 || !confirm(`Sitzplan „${plan.name}“ löschen?`)) return;
-          course.seatingPlans = course.seatingPlans.filter((item) => item.id !== plan.id);
-          course.activeSeatingPlanId = course.seatingPlans[0].id;
-          currentSeatingPlan(course);
-          save();
-          renderSeating(course);
-          return;
-        }
-
-        if (event.target.id === "addSeatTableBtn") {
-          const course = currentCourse();
-          const plan = currentSeatingPlan(course);
-          plan.tables.push({ id: uid("table"), label: `Tisch ${plan.tables.length + 1}`, x: snapSeatValue(48 + plan.tables.length * 24, plan), y: snapSeatValue(48 + plan.tables.length * 24, plan), width: 220, height: 72 });
-          save();
-          renderSeating(course);
-          return;
-        }
-
-        if (event.target.id === "removeSeatTableBtn") {
-          const course = currentCourse();
-          const plan = currentSeatingPlan(course);
-          if (!plan.tables.length || !confirm("Den zuletzt hinzugefügten Tisch löschen?")) return;
-          plan.tables.pop();
-          save();
-          renderSeating(course);
-          return;
-        }
-
-        if (event.target.id === "shuffleSeatingBtn") {
-          const course = currentCourse();
-          const shuffledIds = shuffle(course.students.map((student) => student.id));
-          course.seatOrder = shuffledIds;
-          arrangeSeatPositions(course, shuffledIds.map((id) => course.students.find((student) => student.id === id)).filter(Boolean));
-          save();
-          renderSeating(course);
           return;
         }
 
