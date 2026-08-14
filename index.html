@@ -719,6 +719,12 @@
       box-shadow: 0 8px 18px rgba(20, 35, 50, .05);
     }
 
+    @media (pointer: coarse) {
+      .course-item {
+        touch-action: none;
+      }
+    }
+
     .course-item .item-menu-button {
       touch-action: manipulation;
     }
@@ -1865,6 +1871,12 @@
       cursor: grab;
       touch-action: pan-x pan-y;
       user-select: none;
+    }
+
+    .coursebook-card > header {
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     .coursebook-card,
@@ -3693,12 +3705,18 @@
         coursebookDropKey: null,
         coursebookDropAfter: false,
         coursebookPointerId: null,
+        coursebookDragTimer: null,
+        coursebookDragActive: false,
+        coursebookDragStartX: 0,
+        coursebookDragStartY: 0,
         courseDragId: null,
         courseDragPointerId: null,
         courseDragTimer: null,
         courseDragActive: false,
         courseDragStartX: 0,
         courseDragStartY: 0,
+        courseDragStartScrollTop: 0,
+        courseDragScrolling: false,
         courseDropId: null,
         courseDropAfter: false,
         seatingMode: null,
@@ -7965,11 +7983,14 @@
       }
 
       function clearCoursebookDragState() {
+        clearTimeout(view.coursebookDragTimer);
         $$(".coursebook-card").forEach((card) => card.classList.remove("dragging", "drop-target", "drop-after"));
         view.coursebookDragKey = null;
         view.coursebookDropKey = null;
         view.coursebookDropAfter = false;
         view.coursebookPointerId = null;
+        view.coursebookDragTimer = null;
+        view.coursebookDragActive = false;
       }
 
       function reorderCourses(sourceId, targetId, placeAfter = false) {
@@ -8033,6 +8054,7 @@
         view.courseDragPointerId = null;
         view.courseDragTimer = null;
         view.courseDragActive = false;
+        view.courseDragScrolling = false;
         view.courseDropId = null;
         view.courseDropAfter = false;
       }
@@ -8600,18 +8622,36 @@
         const header = event.target.closest(".coursebook-card > header");
         const card = header?.closest("[data-coursebook-card]");
         if (!card) return;
-        if (event.pointerType === "touch") return;
+        if (event.pointerType === "mouse" && event.button !== 0) return;
+        clearCoursebookDragState();
         view.coursebookDragKey = card.dataset.coursebookCard;
         view.coursebookDropKey = null;
         view.coursebookDropAfter = false;
         view.coursebookPointerId = event.pointerId;
-        card.classList.add("dragging");
+        view.coursebookDragStartX = event.clientX;
+        view.coursebookDragStartY = event.clientY;
         card.setPointerCapture?.(event.pointerId);
+        if (event.pointerType === "touch") {
+          view.coursebookDragTimer = setTimeout(() => {
+            if (view.coursebookDragKey !== card.dataset.coursebookCard || view.coursebookPointerId !== event.pointerId) return;
+            view.coursebookDragActive = true;
+            card.classList.add("dragging");
+          }, 360);
+        } else {
+          view.coursebookDragActive = true;
+          card.classList.add("dragging");
+        }
         event.preventDefault();
       });
 
       $("#mainContent").addEventListener("pointermove", (event) => {
         if (!view.coursebookDragKey || view.coursebookPointerId !== event.pointerId) return;
+        if (!view.coursebookDragActive) {
+          if (Math.hypot(event.clientX - view.coursebookDragStartX, event.clientY - view.coursebookDragStartY) > 10) {
+            clearCoursebookDragState();
+          }
+          return;
+        }
         const element = document.elementFromPoint(event.clientX, event.clientY);
         const targetCard = element?.closest?.("[data-coursebook-card]");
         markCoursebookDropTarget(targetCard, targetCard ? coursebookDropAfter(targetCard, event) : false);
@@ -8620,13 +8660,15 @@
 
       $("#mainContent").addEventListener("pointerup", (event) => {
         if (!view.coursebookDragKey || view.coursebookPointerId !== event.pointerId) return;
+        const wasActive = view.coursebookDragActive;
         const sourceKey = view.coursebookDragKey;
         const element = document.elementFromPoint(event.clientX, event.clientY);
         const targetCard = element?.closest?.("[data-coursebook-card]");
         const targetKey = targetCard?.dataset.coursebookCard !== sourceKey ? targetCard?.dataset.coursebookCard : view.coursebookDropKey;
         const placeAfter = targetCard?.dataset.coursebookCard !== sourceKey && targetCard ? coursebookDropAfter(targetCard, event) : view.coursebookDropAfter;
         clearCoursebookDragState();
-        if (targetKey) reorderCoursebookCards(sourceKey, targetKey, placeAfter);
+        if (wasActive && targetKey) reorderCoursebookCards(sourceKey, targetKey, placeAfter);
+        event.preventDefault();
       });
 
       $("#mainContent").addEventListener("pointercancel", (event) => {
@@ -8670,13 +8712,14 @@
       $("#courseList").addEventListener("pointerdown", (event) => {
         const item = event.target.closest(".course-item[data-course-id]");
         if (!item || event.target.closest("[data-open-course-menu]")) return;
-        if (event.pointerType === "touch") return;
         if (event.pointerType === "mouse" && event.button !== 0) return;
         clearCourseDragState();
         view.courseDragId = item.dataset.courseId;
         view.courseDragPointerId = event.pointerId;
         view.courseDragStartX = event.clientX;
         view.courseDragStartY = event.clientY;
+        view.courseDragStartScrollTop = $("#courseList").parentElement?.scrollTop || 0;
+        view.courseDragScrolling = false;
         try {
           item.setPointerCapture?.(event.pointerId);
         } catch {
@@ -8690,6 +8733,17 @@
       $("#courseList").addEventListener("pointermove", (event) => {
         if (!view.courseDragId || view.courseDragPointerId !== event.pointerId) return;
         if (!view.courseDragActive) {
+          const dx = event.clientX - view.courseDragStartX;
+          const dy = event.clientY - view.courseDragStartY;
+          if (event.pointerType === "touch" && Math.hypot(dx, dy) > 8) {
+            clearTimeout(view.courseDragTimer);
+            view.courseDragTimer = null;
+            view.courseDragScrolling = true;
+            const scroller = $("#courseList").parentElement;
+            if (scroller) scroller.scrollTop = view.courseDragStartScrollTop - dy;
+            view.suppressSelectionUntil = Date.now() + 450;
+            event.preventDefault();
+          }
           return;
         }
         const scroller = $("#courseList").parentElement;
