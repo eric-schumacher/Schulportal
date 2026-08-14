@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#e5f6eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Schulportal">
   <link rel="icon" type="image/png" href="schulportal-app-icon-transparent-square.png">
   <link rel="shortcut icon" type="image/png" href="schulportal-app-icon-transparent-square.png">
   <link rel="apple-touch-icon" href="schulportal-app-icon-transparent-square.png">
@@ -9646,6 +9649,14 @@
         mainTabs.scrollBy({ left: Math.max(180, mainTabs.clientWidth * .72), behavior: "smooth" });
       });
       window.addEventListener("resize", updateTabScrollHints, { passive: true });
+
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("./sw.js").catch((error) => console.warn("Offline-Modus konnte nicht aktiviert werden:", error));
+        });
+      }
+
+      navigator.storage?.persist?.().catch(() => {});
 
       setupLockScreen();
       render();
