@@ -5602,26 +5602,11 @@
             </button>
           `));
 
-        const unfinished = state.courses.flatMap((course) => (course.checkEntries || [])
-          .filter((entry) => (entry.homeworkMissing || []).length || (entry.materialMissing || []).length)
-          .map((entry) => ({ course, entry })))
-          .sort((a, b) => String(b.entry.date).localeCompare(String(a.entry.date)))
-          .map(({ course, entry }) => {
-            const count = new Set([...(entry.homeworkMissing || []), ...(entry.materialMissing || [])]).size;
-            return `
-              <div class="daily-overview-item">
-                <strong>${escapeHtml(course.name)}${entry.note ? ` · ${escapeHtml(entry.note)}` : ""}</strong>
-                <div class="muted">${formatDate(entry.date)} · ${count} noch nicht abgeschlossen</div>
-              </div>
-            `;
-          });
-
         $("#dailyOverviewContent").innerHTML = `
           <div class="daily-overview-grid">
             ${dailyOverviewSection("Geburtstage – nächste 7 Tage", birthdays, "Keine Geburtstage in den nächsten 7 Tagen.")}
             ${dailyOverviewSection("Termine – nächste 30 Tage", events, "Keine Termine in den nächsten 30 Tagen.")}
             ${dailyOverviewSection("Offene Checklisten", checklists, "Alle Checklisten sind erledigt.")}
-            ${dailyOverviewSection("Noch nicht abgeschlossene Einträge", unfinished, "Keine offenen Einträge.")}
           </div>
         `;
       }
