@@ -3785,6 +3785,7 @@
         gradePrivacy: false,
         gradePrivacyStudentId: null,
         gradePhotoMode: false,
+        trackingPhotoMode: false,
         calendarMode: "month",
         calendarDate: todayIso(),
         calendarFocusEventId: null,
@@ -6122,14 +6123,21 @@
         `;
       }
 
-      function renderTrackingForm(course) {
+      function renderTrackingForm(course, draft = null) {
         const labels = absenceLabels(course);
         const entry = course.checkEntries.find((item) => item.id === view.editingEntryId) || null;
-        const homeworkMissing = new Set(entry?.homeworkMissing || []);
-        const materialMissing = new Set(entry?.materialMissing || []);
-        const rows = course.students.map((student) => `
+        const formValues = draft || entry;
+        const homeworkMissing = new Set(formValues?.homeworkMissing || []);
+        const materialMissing = new Set(formValues?.materialMissing || []);
+        const photoMode = Boolean(view.trackingPhotoMode);
+        const rows = course.students.map((student) => {
+          const displayName = lastFirstStudentName(student);
+          const studentDisplay = photoMode
+            ? `<button type="button" class="grade-student-photo" data-open-student-overview="${escapeHtml(student.id)}" title="${escapeHtml(displayName)}" aria-label="${escapeHtml(displayName)}"><span class="avatar">${student.photo ? `<img src="${escapeHtml(student.photo)}" alt="${escapeHtml(displayName)}">` : escapeHtml(initials(student.name))}</span></button>`
+            : `<button type="button" class="student-name-link" data-open-student-overview="${escapeHtml(student.id)}">${escapeHtml(displayName)}</button>`;
+          return `
           <div class="mark-row">
-            <button type="button" class="student-name-link" data-open-student-overview="${escapeHtml(student.id)}">${escapeHtml(lastFirstStudentName(student))}</button>
+            ${studentDisplay}
             <label title="${escapeHtml(labels.homeworkLong)}">
               <input type="checkbox" name="homeworkMissing" value="${escapeHtml(student.id)}" ${homeworkMissing.has(student.id) ? "checked" : ""}>
             </label>
@@ -6137,15 +6145,16 @@
               <input type="checkbox" name="materialMissing" value="${escapeHtml(student.id)}" ${materialMissing.has(student.id) ? "checked" : ""}>
             </label>
           </div>
-        `).join("");
+        `;
+        }).join("");
         return `
           <form class="tracking-form" id="trackingForm">
             <div class="form-grid">
-              <label>Datum<input type="date" name="date" value="${escapeHtml(entry?.date || todayIso())}" required></label>
-              <label>Notiz<input name="note" value="${escapeHtml(entry?.note || "")}" placeholder="z. B. AB 3 / Buch S. 48"></label>
+              <label>Datum<input type="date" name="date" value="${escapeHtml(formValues?.date || todayIso())}" required></label>
+              <label>Notiz<input name="note" value="${escapeHtml(formValues?.note || "")}" placeholder="z. B. AB 3 / Buch S. 48"></label>
               <div class="full mark-table">
                 <div class="mark-row head">
-                  <span>Schüler</span>
+                  <span>${photoMode ? "Bild" : "Schüler"}</span>
                   <span>${escapeHtml(labels.homeworkShort)}</span>
                   <span>${escapeHtml(labels.materialShort)}</span>
                 </div>
@@ -6156,6 +6165,7 @@
                 <button type="button" id="openTrackingDetailsBtn">Details</button>
                 <button type="button" id="newEntryBtn">Neu</button>
                 ${entry ? `<button type="button" class="round-image-button" id="deleteEntryBtn" title="Eintrag löschen" aria-label="Eintrag löschen"><img class="button-art" src="button-delete.png" alt=""></button>` : ""}
+                <button type="button" class="round-image-button grade-photo-toggle${photoMode ? " active" : ""}" id="toggleTrackingPhotosBtn" title="Zwischen Namen und Bildern wechseln" aria-label="Zwischen Namen und Bildern wechseln" aria-pressed="${photoMode ? "true" : "false"}"><span>🙂</span></button>
               </div>
             </div>
           </form>
@@ -6283,11 +6293,11 @@
         syncAbsenceEpoThumbs(course, values);
       }
 
-      function renderTracking(course) {
+      function renderTracking(course, draft = null) {
 
         $("#mainContent").innerHTML = `
           <div class="tracking-area">
-            ${renderTrackingForm(course)}
+            ${renderTrackingForm(course, draft)}
           </div>
         `;
       }
@@ -9520,6 +9530,14 @@
         const studentPhoto = event.target.closest("[data-enlarge-student-photo]");
         if (studentPhoto) {
           openStudentPhotoLightbox(studentPhoto);
+          return;
+        }
+
+        if (event.target.closest("#toggleTrackingPhotosBtn")) {
+          const form = $("#trackingForm");
+          const draft = form ? trackingValuesFromForm(form, view.editingEntryId || "tracking-draft") : null;
+          view.trackingPhotoMode = !view.trackingPhotoMode;
+          renderTracking(currentCourse(), draft);
           return;
         }
 
