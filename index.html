@@ -9264,7 +9264,7 @@
           const course = currentCourse();
           const values = trackingValuesFromForm(event.target, view.editingEntryId || uid("e"));
           saveTrackingValues(course, values);
-          view.editingEntryId = values.id;
+          view.editingEntryId = null;
           save();
           render();
           if (!$("#trackingDetailsModal").classList.contains("hidden")) renderTrackingDetailsModal();
