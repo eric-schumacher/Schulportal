@@ -2675,6 +2675,10 @@
       background: var(--panel-2);
     }
 
+    #gradeEntryStep {
+      touch-action: pan-y;
+    }
+
     .modal-actions {
       display: flex;
       gap: 8px;
@@ -3684,6 +3688,7 @@
         gradeDraftColumnId: null,
         gradeDraftStudentIndex: 0,
         gradeSwipeStart: null,
+        gradeSwipeSuppressClickUntil: 0,
         coursebookDragKey: null,
         coursebookDropKey: null,
         coursebookDropAfter: false,
@@ -4074,6 +4079,14 @@
 
       function fullStudentName(student) {
         return normalizeText(`${student.firstName || ""} ${student.lastName || ""}`) || normalizeText(student.name) || "Ohne Namen";
+      }
+
+      function lastFirstStudentName(student) {
+        const parts = splitStudentName(student?.name || "");
+        const firstName = normalizeText(student?.firstName || parts.firstName);
+        const lastName = normalizeText(student?.lastName || parts.lastName);
+        if (lastName && firstName) return `${lastName}, ${firstName}`;
+        return lastName || firstName || normalizeText(student?.name) || "Ohne Namen";
       }
 
       function makeStudent(name, birthdate = "") {
@@ -5988,7 +6001,7 @@
           return `
             <tr class="${privacyActive && showGrades ? "privacy-revealed" : ""}" data-grade-privacy-student="${escapeHtml(student.id)}">
               <td class="name-col student-cell">
-                <button type="button" class="student-name-link${privacyActive ? " privacy-toggle" : ""}" data-open-student-overview="${escapeHtml(student.id)}">${escapeHtml(student.name)}</button>
+                <button type="button" class="student-name-link${privacyActive ? " privacy-toggle" : ""}" data-open-student-overview="${escapeHtml(student.id)}">${escapeHtml(lastFirstStudentName(student))}</button>
               </td>
               ${cells}
               <td class="avg-cell grade-total-avg ${showGrades && isBadAverage(course, avgAll) ? "bad" : ""}">${showGrades ? formatAverage(course, avgAll) : `<span class="avg-mask">*</span>`}</td>
@@ -6053,7 +6066,7 @@
         const materialMissing = new Set(entry?.materialMissing || []);
         const rows = course.students.map((student) => `
           <div class="mark-row">
-            <button type="button" class="student-name-link" data-open-student-overview="${escapeHtml(student.id)}">${escapeHtml(student.name)}</button>
+            <button type="button" class="student-name-link" data-open-student-overview="${escapeHtml(student.id)}">${escapeHtml(lastFirstStudentName(student))}</button>
             <label title="${escapeHtml(labels.homeworkLong)}">
               <input type="checkbox" name="homeworkMissing" value="${escapeHtml(student.id)}" ${homeworkMissing.has(student.id) ? "checked" : ""}>
             </label>
@@ -6090,12 +6103,14 @@
         const sorted = [...course.checkEntries].sort((a, b) => String(b.date).localeCompare(String(a.date)));
         return sorted.map((entry) => {
           const homeworkNames = entry.homeworkMissing
-            .map((id) => course.students.find((student) => student.id === id)?.name)
+            .map((id) => course.students.find((student) => student.id === id))
             .filter(Boolean)
+            .map(lastFirstStudentName)
             .join(", ");
           const materialNames = entry.materialMissing
-            .map((id) => course.students.find((student) => student.id === id)?.name)
+            .map((id) => course.students.find((student) => student.id === id))
             .filter(Boolean)
+            .map(lastFirstStudentName)
             .join(", ");
           return `
             <tr class="tracking-row">
@@ -6118,7 +6133,7 @@
         const materialMissing = new Set(entry.materialMissing || []);
         const rows = course.students.map((student) => `
           <div class="mark-row">
-            <button type="button" class="student-name-link" data-open-student-overview="${escapeHtml(student.id)}">${escapeHtml(student.name)}</button>
+            <button type="button" class="student-name-link" data-open-student-overview="${escapeHtml(student.id)}">${escapeHtml(lastFirstStudentName(student))}</button>
             <label title="${escapeHtml(labels.homeworkLong)}">
               <input type="checkbox" name="homeworkMissing" value="${escapeHtml(student.id)}" ${homeworkMissing.has(student.id) ? "checked" : ""}>
             </label>
@@ -6397,7 +6412,7 @@
           }).join("");
           return `
             <tr>
-              <td class="student-cell"><button type="button" class="student-name-link" data-open-student-overview="${escapeHtml(student.id)}">${escapeHtml(student.name)}</button></td>
+              <td class="student-cell"><button type="button" class="student-name-link" data-open-student-overview="${escapeHtml(student.id)}">${escapeHtml(lastFirstStudentName(student))}</button></td>
               ${cells}
             </tr>
           `;
@@ -6454,7 +6469,7 @@
             : selectedCourse.students;
           const rows = visibleStudents.map((student) => `
             <div class="mark-row">
-              <span>${escapeHtml(student.name)}</span>
+              <span>${escapeHtml(lastFirstStudentName(student))}</span>
               <label title="Erledigt">
                 <input type="checkbox" data-check-student="${escapeHtml(student.id)}" ${selected.done.includes(student.id) ? "checked" : ""}>
               </label>
@@ -7881,7 +7896,7 @@
           <div class="muted">${view.gradeDraftStudentIndex + 1} von ${course.students.length} · ${escapeHtml(column.title)}</div>
           <div class="wizard-student-card">
             <span class="avatar">${student.photo ? `<img src="${escapeHtml(student.photo)}" alt="">` : escapeHtml(initials(student.name))}</span>
-            <strong>${escapeHtml(student.name)}</strong>
+            <strong>${escapeHtml(lastFirstStudentName(student))}</strong>
           </div>
           <div class="grade-choice-grid">
             ${gradeChoicesForCourse(course).map((grade) => `<button type="button" data-grade-choice="${escapeHtml(grade)}">${escapeHtml(grade)}</button>`).join("")}
@@ -7897,6 +7912,13 @@
           view.gradeDraftStudentIndex += 1;
           renderGradeWizardStep();
         }
+      }
+
+      function navigateGradeWizard(delta) {
+        const course = currentCourse();
+        if (!course.students.length || !course.gradeColumns.some((item) => item.id === view.gradeDraftColumnId)) return;
+        view.gradeDraftStudentIndex = Math.max(0, Math.min(course.students.length, view.gradeDraftStudentIndex + delta));
+        renderGradeWizardStep();
       }
 
       function recordWizardGrade(grade) {
@@ -8476,16 +8498,28 @@
 
       $("#gradeEntryStep").addEventListener("pointerdown", (event) => {
         if ($("#gradeEntryStep").classList.contains("hidden")) return;
-        view.gradeSwipeStart = { x: event.clientX, y: event.clientY };
+        view.gradeSwipeStart = { x: event.clientX, y: event.clientY, pointerId: event.pointerId };
       });
 
       $("#gradeEntryStep").addEventListener("pointerup", (event) => {
-        if (!view.gradeSwipeStart || $("#gradeEntryStep").classList.contains("hidden")) return;
+        if (!view.gradeSwipeStart || view.gradeSwipeStart.pointerId !== event.pointerId || $("#gradeEntryStep").classList.contains("hidden")) return;
         const dx = event.clientX - view.gradeSwipeStart.x;
         const dy = event.clientY - view.gradeSwipeStart.y;
         view.gradeSwipeStart = null;
-        if (dx < -55 && Math.abs(dy) < 80) skipWizardGrade();
+        if (Math.abs(dx) < 55 || Math.abs(dx) <= Math.abs(dy)) return;
+        view.gradeSwipeSuppressClickUntil = Date.now() + 400;
+        navigateGradeWizard(dx < 0 ? 1 : -1);
       });
+
+      $("#gradeEntryStep").addEventListener("pointercancel", () => {
+        view.gradeSwipeStart = null;
+      });
+
+      $("#gradeEntryStep").addEventListener("click", (event) => {
+        if (Date.now() >= (view.gradeSwipeSuppressClickUntil || 0)) return;
+        event.preventDefault();
+        event.stopPropagation();
+      }, true);
 
       $("#mainContent").addEventListener("pointerdown", (event) => {
         const item = event.target.closest("[data-seat-student], [data-seat-table]");
