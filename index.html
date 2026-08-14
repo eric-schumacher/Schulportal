@@ -3867,7 +3867,9 @@
           const x = rect.left + rect.width / 2;
           const y = rect.top + rect.height / 2;
           const distance = Math.hypot(event.clientX - x, event.clientY - y);
-          const radius = Math.max(34, rect.width * 1.45);
+          // Keep a small touch allowance around the visible dot without letting
+          // neighbouring dots pull the pattern line in too early.
+          const radius = Math.max(18, rect.width * 0.68);
           if (distance <= radius && (!best || distance < best.distance)) {
             best = { dot, distance };
           }
