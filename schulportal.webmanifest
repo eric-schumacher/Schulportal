@@ -1,8 +1,11 @@
 {
   "name": "Schulportal",
   "short_name": "Schulportal",
-  "start_url": "lehrer-notenbuch.html",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
+  "orientation": "any",
   "theme_color": "#e5f6eb",
   "background_color": "#ffffff",
   "icons": [
