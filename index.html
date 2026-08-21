@@ -3701,9 +3701,12 @@
   </div>
 
   <script>
-    (() => {
+    (async () => {
       const STORAGE_KEY = "codex-lehrer-notenbuch-v10";
       const PREVIOUS_STORAGE_KEY = "codex-lehrer-notenbuch-v9";
+      const APP_DB_NAME = "notenbuch-app-storage";
+      const APP_DB_STORE = "state";
+      const APP_DB_KEY = "current";
       const BACKUP_DB_NAME = "notenbuch-auto-backup";
       const BACKUP_HANDLE_KEY = "daily-backup-file";
       const BACKUP_LAST_DATE_KEY = "notenbuch-last-auto-backup-date";
@@ -4968,10 +4971,80 @@
         return data;
       }
 
-      function loadData() {
+      function openAppDatabase() {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(APP_DB_NAME, 1);
+          request.onupgradeneeded = () => {
+            if (!request.result.objectStoreNames.contains(APP_DB_STORE)) request.result.createObjectStore(APP_DB_STORE);
+          };
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error || new Error("Der Gerätespeicher konnte nicht geöffnet werden."));
+        });
+      }
+
+      async function readAppState() {
+        const database = await openAppDatabase();
+        return new Promise((resolve, reject) => {
+          const transaction = database.transaction(APP_DB_STORE, "readonly");
+          const request = transaction.objectStore(APP_DB_STORE).get(APP_DB_KEY);
+          request.onsuccess = () => resolve(request.result || null);
+          request.onerror = () => reject(request.error);
+          transaction.oncomplete = () => database.close();
+          transaction.onabort = () => {
+            database.close();
+            reject(transaction.error || new Error("Die gespeicherten Daten konnten nicht gelesen werden."));
+          };
+        });
+      }
+
+      async function writeAppState(value) {
+        const database = await openAppDatabase();
+        return new Promise((resolve, reject) => {
+          const transaction = database.transaction(APP_DB_STORE, "readwrite");
+          transaction.objectStore(APP_DB_STORE).put(value, APP_DB_KEY);
+          transaction.oncomplete = () => {
+            database.close();
+            resolve();
+          };
+          transaction.onerror = () => {
+            database.close();
+            reject(transaction.error || new Error("Die Daten konnten nicht gespeichert werden."));
+          };
+          transaction.onabort = () => {
+            database.close();
+            reject(transaction.error || new Error("Die Daten konnten nicht gespeichert werden."));
+          };
+        });
+      }
+
+      async function migrateToAppDatabase(value) {
+        const normalized = normalizeData(value);
+        await writeAppState(normalized);
         try {
+          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem(PREVIOUS_STORAGE_KEY);
+        } catch {}
+        return normalized;
+      }
+
+      async function loadData() {
+        try {
+          try {
+            const stored = await readAppState();
+            if (stored) return normalizeData(stored);
+          } catch (error) {
+            console.warn("IndexedDB ist momentan nicht lesbar, alter Speicher wird versucht:", error);
+          }
           const raw = localStorage.getItem(STORAGE_KEY);
-          if (raw) return normalizeData(JSON.parse(raw));
+          if (raw) {
+            const previousState = normalizeData(JSON.parse(raw));
+            try {
+              return await migrateToAppDatabase(previousState);
+            } catch (error) {
+              console.warn("Automatische Speicherumstellung wird später erneut versucht:", error);
+              return previousState;
+            }
+          }
           const previousRaw = localStorage.getItem(PREVIOUS_STORAGE_KEY);
           const initialData = previousRaw
             ? normalizeData(JSON.parse(previousRaw))
@@ -5054,18 +5127,65 @@
                 if (canonicalStudent?.photo) student.photo = canonicalStudent.photo;
               });
             });
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(initialData));
-          return initialData;
-        } catch {
+          try {
+            return await migrateToAppDatabase(initialData);
+          } catch (error) {
+            console.warn("Daten werden vorübergehend aus dem bisherigen Speicher verwendet:", error);
+            return initialData;
+          }
+        } catch (error) {
+          console.error("Speicher konnte nicht geladen werden:", error);
           return normalizeData(createInitialData());
         }
       }
 
-      let state = loadData();
+      let state = await loadData();
+      let saveQueue = Promise.resolve();
+      let storageWarningShown = false;
 
       function save() {
         syncAllAutomaticGradeColumns();
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        const snapshot = typeof structuredClone === "function"
+          ? structuredClone(state)
+          : JSON.parse(JSON.stringify(state));
+        saveQueue = saveQueue
+          .catch(() => {})
+          .then(() => writeAppState(snapshot))
+          .then(() => {
+            storageWarningShown = false;
+          })
+          .catch((error) => {
+            console.error("Speichern fehlgeschlagen:", error);
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+              return;
+            } catch {}
+            if (storageWarningShown) return;
+            storageWarningShown = true;
+            alert("Der Gerätespeicher konnte die Änderung nicht sichern. Bitte jetzt eine Sicherung herunterladen und auf dem iPad Speicherplatz freigeben.");
+          });
+        return saveQueue;
+      }
+
+      async function strengthenDeviceStorage() {
+        try {
+          if (navigator.storage?.persist) await navigator.storage.persist();
+        } catch (error) {
+          console.warn("Dauerhafter Gerätespeicher konnte nicht angefordert werden:", error);
+        }
+      }
+
+      async function deviceStorageSummary() {
+        try {
+          if (!navigator.storage?.estimate) return "";
+          const { usage = 0, quota = 0 } = await navigator.storage.estimate();
+          const format = (bytes) => bytes >= 1073741824
+            ? `${(bytes / 1073741824).toFixed(1)} GB`
+            : `${Math.max(0, bytes / 1048576).toFixed(0)} MB`;
+          return quota ? ` · Gerätespeicher ${format(usage)} von etwa ${format(quota)} belegt` : "";
+        } catch {
+          return "";
+        }
       }
 
       function openGeneralNotes() {
@@ -7187,8 +7307,9 @@
         const button = $("#exportBtn");
         if (!button) return;
         const lastDate = localStorage.getItem(BACKUP_LAST_DATE_KEY);
+        const storageSummary = await deviceStorageSummary();
         if (!("showSaveFilePicker" in window)) {
-          button.title = `Automatischer Download dienstags und donnerstags aktiv${lastDate ? ` · zuletzt ${formatDate(lastDate)}` : ""}`;
+          button.title = `Automatischer Download dienstags und donnerstags aktiv${lastDate ? ` · zuletzt ${formatDate(lastDate)}` : ""}${storageSummary}`;
           button.setAttribute("aria-label", button.title);
           return;
         }
@@ -7200,8 +7321,8 @@
           configured = false;
         }
         button.title = configured
-          ? `Automatische Sicherung dienstags und donnerstags aktiv${lastDate ? ` · zuletzt ${formatDate(lastDate)}` : ""}`
-          : "Automatische Sicherung für Dienstag und Donnerstag einrichten";
+          ? `Automatische Sicherung dienstags und donnerstags aktiv${lastDate ? ` · zuletzt ${formatDate(lastDate)}` : ""}${storageSummary}`
+          : `Automatische Sicherung für Dienstag und Donnerstag einrichten${storageSummary}`;
         button.setAttribute("aria-label", button.title);
       }
 
@@ -9688,7 +9809,7 @@
         });
       }
 
-      navigator.storage?.persist?.().catch(() => {});
+      strengthenDeviceStorage();
 
       setupLockScreen();
       render();
