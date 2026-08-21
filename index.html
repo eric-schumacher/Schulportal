@@ -1474,6 +1474,23 @@
       padding: 0;
     }
 
+    .mark-row label.absence-mark-cell {
+      min-height: 46px;
+      grid-template-rows: 22px 12px;
+      gap: 1px;
+      align-content: center;
+    }
+
+    .absence-count {
+      padding: 0 !important;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 750;
+      line-height: 1;
+      text-align: center;
+      pointer-events: none;
+    }
+
     .tracking-list {
       min-height: 0;
       overflow: auto;
@@ -6251,6 +6268,13 @@
         const materialMissing = new Set(formValues?.materialMissing || []);
         const photoMode = Boolean(view.trackingPhotoMode);
         const rows = course.students.map((student) => {
+          const storedCounts = studentCountsInCourse(course, student);
+          const entryHadHomework = Boolean(entry?.homeworkMissing?.includes(student.id));
+          const entryHadMaterial = Boolean(entry?.materialMissing?.includes(student.id));
+          const homeworkBaseCount = Math.max(0, storedCounts.homework - (entryHadHomework ? 1 : 0));
+          const materialBaseCount = Math.max(0, storedCounts.material - (entryHadMaterial ? 1 : 0));
+          const homeworkCount = homeworkBaseCount + (homeworkMissing.has(student.id) ? 1 : 0);
+          const materialCount = materialBaseCount + (materialMissing.has(student.id) ? 1 : 0);
           const displayName = lastFirstStudentName(student);
           const studentDisplay = photoMode
             ? `<button type="button" class="grade-student-photo" data-open-student-overview="${escapeHtml(student.id)}" title="${escapeHtml(displayName)}" aria-label="${escapeHtml(displayName)}"><span class="avatar">${student.photo ? `<img src="${escapeHtml(student.photo)}" alt="${escapeHtml(displayName)}">` : escapeHtml(initials(student.name))}</span></button>`
@@ -6258,11 +6282,13 @@
           return `
           <div class="mark-row">
             ${studentDisplay}
-            <label title="${escapeHtml(labels.homeworkLong)}">
-              <input type="checkbox" name="homeworkMissing" value="${escapeHtml(student.id)}" ${homeworkMissing.has(student.id) ? "checked" : ""}>
+            <label class="absence-mark-cell" title="${escapeHtml(labels.homeworkLong)} · bisher ${homeworkCount}">
+              <input type="checkbox" name="homeworkMissing" value="${escapeHtml(student.id)}" data-absence-base-count="${homeworkBaseCount}" ${homeworkMissing.has(student.id) ? "checked" : ""}>
+              <span class="absence-count" aria-label="Aktueller Stand ${homeworkCount}">${homeworkCount}</span>
             </label>
-            <label title="${escapeHtml(labels.materialLong)}">
-              <input type="checkbox" name="materialMissing" value="${escapeHtml(student.id)}" ${materialMissing.has(student.id) ? "checked" : ""}>
+            <label class="absence-mark-cell" title="${escapeHtml(labels.materialLong)} · bisher ${materialCount}">
+              <input type="checkbox" name="materialMissing" value="${escapeHtml(student.id)}" data-absence-base-count="${materialBaseCount}" ${materialMissing.has(student.id) ? "checked" : ""}>
+              <span class="absence-count" aria-label="Aktueller Stand ${materialCount}">${materialCount}</span>
             </label>
           </div>
         `;
@@ -9620,6 +9646,18 @@
 
       $("#mainContent").addEventListener("change", (event) => {
         if (event.target.classList.contains("grade-input")) render();
+
+        if (event.target.matches("#trackingForm input[data-absence-base-count]")) {
+          const baseCount = Math.max(0, Number(event.target.dataset.absenceBaseCount) || 0);
+          const count = baseCount + (event.target.checked ? 1 : 0);
+          const countLabel = event.target.closest(".absence-mark-cell")?.querySelector(".absence-count");
+          if (countLabel) {
+            countLabel.textContent = String(count);
+            countLabel.setAttribute("aria-label", `Aktueller Stand ${count}`);
+          }
+          const label = event.target.closest(".absence-mark-cell");
+          if (label) label.title = `${label.title.replace(/ · bisher \d+$/, "")} · bisher ${count}`;
+        }
 
         if (event.target.id === "openOnlyToggle") {
           const list = currentChecklist();
