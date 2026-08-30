@@ -5864,7 +5864,7 @@
           .sort((a, b) => a.next.days - b.next.days || a.student.name.localeCompare(b.student.name, "de"))
           .map((item) => `
             <button type="button" class="daily-overview-item daily-overview-item-button" data-daily-student-id="${escapeHtml(item.student.id)}" data-daily-student-name="${escapeHtml(item.student.name)}" data-daily-course-id="${escapeHtml(item.courseId)}">
-              <strong>${escapeHtml(item.student.name)}</strong>
+              ${studentListIdentityHtml(item.student, false)}
               <div class="muted">${String(item.next.date.getDate()).padStart(2, "0")}.${String(item.next.date.getMonth() + 1).padStart(2, "0")}. · ${item.next.days === 0 ? "heute" : item.next.days === 1 ? "morgen" : `in ${item.next.days} Tagen`} · ${escapeHtml(item.courses.join(", "))}</div>
             </button>
           `);
@@ -6568,7 +6568,7 @@
           const when = item.days === 0 ? "heute" : item.days === 1 ? "morgen" : `in ${item.days} Tagen`;
           return `
             <button type="button" class="compact-line" data-open-birthday-student="${escapeHtml(item.student.id)}" data-open-birthday-name="${escapeHtml(item.student.name)}">
-              <strong>${escapeHtml(item.student.name)}</strong>
+              ${studentListIdentityHtml(item.student, false)}
               <span class="muted">${dateLabel} · ${when}</span>
             </button>
           `;
@@ -6578,7 +6578,7 @@
           const when = item.days === -1 ? "gestern" : `vor ${Math.abs(item.days)} Tagen`;
           return `
             <button type="button" class="compact-line" data-open-birthday-student="${escapeHtml(item.student.id)}" data-open-birthday-name="${escapeHtml(item.student.name)}">
-              <strong>${escapeHtml(item.student.name)}</strong>
+              ${studentListIdentityHtml(item.student, false)}
               <span class="muted">${dateLabel} · ${when}</span>
             </button>
           `;
