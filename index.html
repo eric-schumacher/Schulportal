@@ -5254,7 +5254,7 @@
 
       function parseGradeForCourse(course, value) {
         const text = normalizeText(value).replace(",", ".");
-        if (!text || text === "/") return null;
+        if (!text || text === "/" || ["e", "a"].includes(text.toLowerCase())) return null;
         if (isUpperSchoolCourse(course)) {
           const numeric = Number(text);
           if (!Number.isNaN(numeric) && numeric >= 0 && numeric <= 15) return numeric;
@@ -7980,8 +7980,9 @@
         render();
       }
 
-      const gradeChoices = ["1+", "1", "1-", "2+", "2", "2-", "3+", "3", "3-", "4+", "4", "4-", "5+", "5", "5-", "6"];
-      const upperSchoolPointChoices = Array.from({ length: 16 }, (_, index) => String(15 - index));
+      const absenceGradeChoices = ["e", "a"];
+      const gradeChoices = ["1+", "1", "1-", "2+", "2", "2-", "3+", "3", "3-", "4+", "4", "4-", "5+", "5", "5-", "6", ...absenceGradeChoices];
+      const upperSchoolPointChoices = [...Array.from({ length: 16 }, (_, index) => String(15 - index)), ...absenceGradeChoices];
 
       function gradeChoicesForCourse(course) {
         return isUpperSchoolCourse(course) ? upperSchoolPointChoices : gradeChoices;
