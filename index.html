@@ -3012,10 +3012,16 @@
       left: 50%;
       top: 50%;
       max-width: none;
-      width: 100%;
       transform-origin: center;
       user-select: none;
       -webkit-user-drag: none;
+      pointer-events: none;
+    }
+
+    .crop-help {
+      text-align: center;
+      font-size: 13px;
+      padding: 4px 0;
     }
 
     .hidden {
@@ -3658,7 +3664,7 @@
     <div id="cameraModal" class="modal-backdrop hidden">
       <section class="modal camera-modal">
         <header>
-          <span>Bild aufnehmen</span>
+          <span id="cameraModalTitle">Bild aufnehmen</span>
           <button type="button" class="icon" id="closeCameraModalBtn">x</button>
         </header>
         <div class="inside stack">
@@ -3667,6 +3673,7 @@
             <div class="crop-box" id="cropBox">
               <img id="cropImage" alt="">
             </div>
+            <div class="muted crop-help">Mit einem Finger verschieben · mit zwei Fingern zoomen</div>
             <label>Zoom<input id="cropZoom" type="range" min="1" max="3" step="0.05" value="1"></label>
           </div>
           <div class="modal-actions">
@@ -8491,7 +8498,43 @@
 
       function updateCropImage() {
         const image = $("#cropImage");
+        const box = $("#cropBox");
+        if (!image?.naturalWidth || !image?.naturalHeight || !box) return;
+        const rect = box.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        const baseScale = Math.max(rect.width / image.naturalWidth, rect.height / image.naturalHeight);
+        const baseWidth = image.naturalWidth * baseScale;
+        const baseHeight = image.naturalHeight * baseScale;
+        const drawnWidth = baseWidth * view.cropZoom;
+        const drawnHeight = baseHeight * view.cropZoom;
+        const maxX = Math.max(0, (drawnWidth - rect.width) / 2);
+        const maxY = Math.max(0, (drawnHeight - rect.height) / 2);
+        view.cropX = Math.max(-maxX, Math.min(maxX, view.cropX));
+        view.cropY = Math.max(-maxY, Math.min(maxY, view.cropY));
+        image.style.width = `${baseWidth}px`;
+        image.style.height = `${baseHeight}px`;
         image.style.transform = `translate(-50%, -50%) translate(${view.cropX}px, ${view.cropY}px) scale(${view.cropZoom})`;
+      }
+
+      function showPhotoCropEditor(studentId, dataUrl, title = "Bild zuschneiden") {
+        stopCameraStream();
+        view.cameraStudentId = studentId;
+        view.cropImageData = dataUrl;
+        view.cropX = 0;
+        view.cropY = 0;
+        view.cropZoom = 1;
+        $("#cameraModalTitle").textContent = title;
+        $("#cameraModal").classList.remove("hidden");
+        $("#cameraVideo").classList.add("hidden");
+        $("#cropStage").classList.remove("hidden");
+        $("#switchCameraBtn").classList.add("hidden");
+        $("#capturePhotoBtn").classList.add("hidden");
+        $("#savePhotoBtn").classList.remove("hidden");
+        $("#cropZoom").value = "1";
+        const image = $("#cropImage");
+        image.onload = () => requestAnimationFrame(updateCropImage);
+        image.src = dataUrl;
+        if (image.complete) requestAnimationFrame(updateCropImage);
       }
 
       function stopCameraStream() {
@@ -8622,6 +8665,7 @@
 
       async function openCameraForStudent(studentId) {
         view.cameraStudentId = studentId;
+        $("#cameraModalTitle").textContent = "Bild aufnehmen";
         view.cropImageData = "";
         view.cropX = 0;
         view.cropY = 0;
@@ -8709,17 +8753,7 @@
         const context = canvas.getContext("2d");
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         view.cropImageData = canvas.toDataURL("image/jpeg", .82);
-        $("#cropImage").src = view.cropImageData;
-        $("#cropZoom").value = "1";
-        view.cropX = 0;
-        view.cropY = 0;
-        view.cropZoom = 1;
-        updateCropImage();
-        $("#cameraVideo").classList.add("hidden");
-        $("#cropStage").classList.remove("hidden");
-        $("#switchCameraBtn").classList.add("hidden");
-        $("#capturePhotoBtn").classList.add("hidden");
-        $("#savePhotoBtn").classList.remove("hidden");
+        showPhotoCropEditor(view.cameraStudentId, view.cropImageData, "Foto zuschneiden");
       }
 
       function saveCroppedPhoto() {
@@ -9478,22 +9512,65 @@
         view.cropZoom = Number(event.target.value) || 1;
         updateCropImage();
       });
+      const cropPointers = new Map();
+      let cropGesture = null;
+
+      function cropPointerDistance() {
+        const points = [...cropPointers.values()];
+        if (points.length < 2) return 0;
+        return Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y);
+      }
+
+      function cropPointerCenter() {
+        const points = [...cropPointers.values()];
+        if (!points.length) return { x: 0, y: 0 };
+        return {
+          x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
+          y: points.reduce((sum, point) => sum + point.y, 0) / points.length
+        };
+      }
+
+      function beginCropGesture() {
+        const center = cropPointerCenter();
+        cropGesture = {
+          centerX: center.x,
+          centerY: center.y,
+          distance: cropPointerDistance(),
+          cropX: view.cropX,
+          cropY: view.cropY,
+          zoom: view.cropZoom
+        };
+      }
+
       $("#cropBox").addEventListener("pointerdown", (event) => {
-        view.cropDragStart = { x: event.clientX, y: event.clientY, cropX: view.cropX, cropY: view.cropY };
+        event.preventDefault();
+        cropPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
         $("#cropBox").setPointerCapture?.(event.pointerId);
+        beginCropGesture();
       });
+
       $("#cropBox").addEventListener("pointermove", (event) => {
-        if (!view.cropDragStart) return;
-        view.cropX = view.cropDragStart.cropX + event.clientX - view.cropDragStart.x;
-        view.cropY = view.cropDragStart.cropY + event.clientY - view.cropDragStart.y;
+        if (!cropPointers.has(event.pointerId) || !cropGesture) return;
+        event.preventDefault();
+        cropPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        const center = cropPointerCenter();
+        view.cropX = cropGesture.cropX + center.x - cropGesture.centerX;
+        view.cropY = cropGesture.cropY + center.y - cropGesture.centerY;
+        if (cropPointers.size >= 2 && cropGesture.distance > 0) {
+          view.cropZoom = Math.max(1, Math.min(3, cropGesture.zoom * cropPointerDistance() / cropGesture.distance));
+          $("#cropZoom").value = String(view.cropZoom);
+        }
         updateCropImage();
       });
-      $("#cropBox").addEventListener("pointerup", () => {
-        view.cropDragStart = null;
-      });
-      $("#cropBox").addEventListener("pointercancel", () => {
-        view.cropDragStart = null;
-      });
+
+      function endCropGesture(event) {
+        cropPointers.delete(event.pointerId);
+        if (cropPointers.size) beginCropGesture();
+        else cropGesture = null;
+      }
+
+      $("#cropBox").addEventListener("pointerup", endCropGesture);
+      $("#cropBox").addEventListener("pointercancel", endCropGesture);
 
       $("#nameGameModal").addEventListener("click", (event) => {
         if (event.target.id === "nameGameModal") closeNameLearning();
@@ -9613,8 +9690,8 @@
         if (!file || !studentId) return;
         try {
           const dataUrl = await readFileAsDataUrl(file);
-          const photo = await compressStudentPhoto(dataUrl);
-          setStudentPhoto(currentCourse(), studentId, photo);
+          await loadImageFromDataUrl(dataUrl);
+          showPhotoCropEditor(studentId, dataUrl, "Profilbild zuschneiden");
         } catch (error) {
           alert(error.message || "Das Bild konnte nicht gespeichert werden.");
         } finally {
