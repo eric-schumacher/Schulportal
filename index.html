@@ -9174,6 +9174,9 @@
         if (tabButton) {
           view.tab = tabButton.dataset.tab;
           view.editingEntryId = null;
+          if (["grades", "tracking", "overview", "checklists"].includes(view.tab)) {
+            setSidePanelsCollapsed(true);
+          }
           if (view.tab === "checklists") {
             view.selectedChecklistId = null;
             view.selectedChecklistCourseId = null;
@@ -9497,6 +9500,13 @@
       });
 
       $("#studentPhotoLightbox").addEventListener("click", closeStudentPhotoLightbox);
+
+      function setSidePanelsCollapsed(collapsed) {
+        $("#workspace").classList.toggle("courses-collapsed", collapsed);
+        $("#workspace").classList.toggle("students-collapsed", collapsed);
+        $("#coursesPanel").classList.toggle("collapsed", collapsed);
+        $("#studentsPanel").classList.toggle("collapsed", collapsed);
+      }
 
       function toggleCoursesPanel() {
         $("#workspace").classList.toggle("courses-collapsed");
