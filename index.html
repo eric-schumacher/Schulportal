@@ -842,6 +842,64 @@
       display: block;
     }
 
+    .student-list-identity {
+      width: 100%;
+      min-width: 0;
+      min-height: 48px;
+      padding: 3px 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      color: var(--text);
+      display: inline-grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    button.student-list-identity {
+      cursor: pointer;
+    }
+
+    button.student-list-identity:hover {
+      background: transparent;
+      box-shadow: none;
+      color: var(--accent);
+    }
+
+    .student-list-identity .avatar {
+      width: 42px;
+      height: 42px;
+      flex: 0 0 42px;
+    }
+
+    .student-list-identity-name {
+      min-width: 0;
+      line-height: 1.15;
+    }
+
+    .student-list-identity-first,
+    .student-list-identity-last {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .student-list-identity-first {
+      font-size: 16px;
+      font-weight: 720;
+    }
+
+    .student-list-identity-last {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
     .student-name {
       font-size: 17px;
       font-weight: 720;
@@ -4201,6 +4259,26 @@
         return lastName || firstName || normalizeText(student?.name) || "Ohne Namen";
       }
 
+      function studentListIdentityHtml(student, clickable = true) {
+        const parts = splitStudentName(student?.name || "");
+        const firstName = normalizeText(student?.firstName || parts.firstName) || "Ohne Namen";
+        const lastName = normalizeText(student?.lastName || parts.lastName);
+        const displayName = fullStudentName(student);
+        const tag = clickable ? "button" : "span";
+        const attributes = clickable
+          ? `type="button" data-open-student-overview="${escapeHtml(student.id)}"`
+          : "";
+        return `
+          <${tag} class="student-list-identity" ${attributes} title="${escapeHtml(displayName)}">
+            <span class="avatar">${student.photo ? `<img src="${escapeHtml(student.photo)}" alt="${escapeHtml(displayName)}">` : escapeHtml(initials(student.name))}</span>
+            <span class="student-list-identity-name">
+              <span class="student-list-identity-first">${escapeHtml(firstName)}</span>
+              ${lastName ? `<span class="student-list-identity-last">${escapeHtml(lastName)}</span>` : ""}
+            </span>
+          </${tag}>
+        `;
+      }
+
       function makeStudent(name, birthdate = "") {
         const parts = splitStudentName(name);
         const displayName = fullStudentName({ firstName: parts.firstName, lastName: parts.lastName, name });
@@ -6168,7 +6246,6 @@
 
       function renderGrades(course) {
         const privacyActive = Boolean(view.gradePrivacy);
-        const photoMode = Boolean(view.gradePhotoMode);
         const revealedStudentId = view.gradePrivacyStudentId;
         const categories = gradeCategoriesForCourse(course).map((key) => ({
           key,
@@ -6207,9 +6284,7 @@
             `;
           }).join("");
           const avgAll = averageFor(course, student.id, "all");
-          const studentIdentity = photoMode
-            ? `<button type="button" class="grade-student-photo" data-open-student-overview="${escapeHtml(student.id)}" title="${escapeHtml(lastFirstStudentName(student))}" aria-label="${escapeHtml(lastFirstStudentName(student))}"><span class="avatar">${student.photo ? `<img src="${escapeHtml(student.photo)}" alt="${escapeHtml(lastFirstStudentName(student))}">` : escapeHtml(initials(student.name))}</span></button>`
-            : `<button type="button" class="student-name-link${privacyActive ? " privacy-toggle" : ""}" data-open-student-overview="${escapeHtml(student.id)}">${escapeHtml(lastFirstStudentName(student))}</button>`;
+          const studentIdentity = studentListIdentityHtml(student);
           return `
             <tr class="${privacyActive && showGrades ? "privacy-revealed" : ""}" data-grade-privacy-student="${escapeHtml(student.id)}">
               <td class="name-col student-cell">
@@ -6249,7 +6324,6 @@
               <button type="button" class="round-image-button incognito-button${privacyActive ? " active" : ""}" id="toggleGradePrivacyBtn" title="Inkognito-Modus" aria-label="Inkognito-Modus" aria-pressed="${privacyActive ? "true" : "false"}">
                 <img class="button-art" src="button-incognito.png" alt="">
               </button>
-              <button type="button" class="round-image-button grade-photo-toggle${photoMode ? " active" : ""}" id="toggleGradePhotosBtn" title="Zwischen Namen und Bildern wechseln" aria-label="Zwischen Namen und Bildern wechseln" aria-pressed="${photoMode ? "true" : "false"}"><span>🙂</span></button>
             </div>
           </div>
           <div class="table-wrap">
@@ -6278,7 +6352,6 @@
         const formValues = draft || entry;
         const homeworkMissing = new Set(formValues?.homeworkMissing || []);
         const materialMissing = new Set(formValues?.materialMissing || []);
-        const photoMode = Boolean(view.trackingPhotoMode);
         const rows = course.students.map((student) => {
           const storedCounts = studentCountsInCourse(course, student);
           const entryHadHomework = Boolean(entry?.homeworkMissing?.includes(student.id));
@@ -6287,10 +6360,7 @@
           const materialBaseCount = Math.max(0, storedCounts.material - (entryHadMaterial ? 1 : 0));
           const homeworkCount = homeworkBaseCount + (homeworkMissing.has(student.id) ? 1 : 0);
           const materialCount = materialBaseCount + (materialMissing.has(student.id) ? 1 : 0);
-          const displayName = lastFirstStudentName(student);
-          const studentDisplay = photoMode
-            ? `<button type="button" class="grade-student-photo" data-open-student-overview="${escapeHtml(student.id)}" title="${escapeHtml(displayName)}" aria-label="${escapeHtml(displayName)}"><span class="avatar">${student.photo ? `<img src="${escapeHtml(student.photo)}" alt="${escapeHtml(displayName)}">` : escapeHtml(initials(student.name))}</span></button>`
-            : `<button type="button" class="student-name-link" data-open-student-overview="${escapeHtml(student.id)}">${escapeHtml(displayName)}</button>`;
+          const studentDisplay = studentListIdentityHtml(student);
           return `
           <div class="mark-row">
             ${studentDisplay}
@@ -6312,7 +6382,7 @@
               <label>Notiz<input name="note" value="${escapeHtml(formValues?.note || "")}" placeholder="z. B. AB 3 / Buch S. 48"></label>
               <div class="full mark-table">
                 <div class="mark-row head">
-                  <span>${photoMode ? "Bild" : "Schüler"}</span>
+                  <span>Schüler</span>
                   <span>${escapeHtml(labels.homeworkShort)}</span>
                   <span>${escapeHtml(labels.materialShort)}</span>
                 </div>
@@ -6323,7 +6393,6 @@
                 <button type="button" id="openTrackingDetailsBtn">Details</button>
                 <button type="button" id="newEntryBtn">Neu</button>
                 ${entry ? `<button type="button" class="round-image-button" id="deleteEntryBtn" title="Eintrag löschen" aria-label="Eintrag löschen"><img class="button-art" src="button-delete.png" alt=""></button>` : ""}
-                <button type="button" class="round-image-button grade-photo-toggle${photoMode ? " active" : ""}" id="toggleTrackingPhotosBtn" title="Zwischen Namen und Bildern wechseln" aria-label="Zwischen Namen und Bildern wechseln" aria-pressed="${photoMode ? "true" : "false"}"><span>🙂</span></button>
               </div>
             </div>
           </form>
@@ -6364,7 +6433,7 @@
         const materialMissing = new Set(entry.materialMissing || []);
         const rows = course.students.map((student) => `
           <div class="mark-row">
-            <button type="button" class="student-name-link" data-open-student-overview="${escapeHtml(student.id)}">${escapeHtml(lastFirstStudentName(student))}</button>
+            ${studentListIdentityHtml(student)}
             <label title="${escapeHtml(labels.homeworkLong)}">
               <input type="checkbox" name="homeworkMissing" value="${escapeHtml(student.id)}" ${homeworkMissing.has(student.id) ? "checked" : ""}>
             </label>
@@ -6598,7 +6667,7 @@
           }).join("");
           return `
             <tr>
-              <td class="student-cell"><button type="button" class="student-name-link" data-open-student-overview="${escapeHtml(student.id)}">${escapeHtml(lastFirstStudentName(student))}</button></td>
+              <td class="student-cell">${studentListIdentityHtml(student)}</td>
               ${cells}
             </tr>
           `;
@@ -6654,10 +6723,7 @@
             ? selectedCourse.students.filter((student) => !selected.done.includes(student.id))
             : selectedCourse.students;
           const rows = visibleStudents.map((student) => {
-            const displayName = lastFirstStudentName(student);
-            const studentDisplay = selected.showPhotos
-              ? `<span class="avatar checklist-student-photo" title="${escapeHtml(displayName)}" aria-label="${escapeHtml(displayName)}">${student.photo ? `<img src="${escapeHtml(student.photo)}" alt="${escapeHtml(displayName)}">` : escapeHtml(initials(student.name))}</span>`
-              : `<span>${escapeHtml(displayName)}</span>`;
+            const studentDisplay = studentListIdentityHtml(student);
             return `
               <div class="mark-row">
                 ${studentDisplay}
@@ -6682,7 +6748,7 @@
               <div class="inside stack">
                 <div class="mark-table">
                   <div class="mark-row head">
-                    <span>${selected.showPhotos ? "Bild" : "Schüler"}</span>
+                    <span>Schüler</span>
                     <span>Fertig</span>
                     <span>Status</span>
                   </div>
@@ -6690,7 +6756,6 @@
                 </div>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                   <button type="button" class="round-image-button" id="deleteChecklistBtn" title="Checkliste löschen" aria-label="Checkliste löschen"><img class="button-art" src="button-delete.png" alt=""></button>
-                  <button type="button" class="checklist-photo-toggle${selected.showPhotos ? " active" : ""}" id="toggleChecklistPhotosBtn" title="Zwischen Namen und Bildern wechseln" aria-label="Zwischen Namen und Bildern wechseln" aria-pressed="${selected.showPhotos ? "true" : "false"}">🙂</button>
                 </div>
               </div>
             </section>
@@ -8105,8 +8170,7 @@
         step.innerHTML = `
           <div class="muted">${view.gradeDraftStudentIndex + 1} von ${course.students.length} · ${escapeHtml(column.title)}</div>
           <div class="wizard-student-card">
-            <span class="avatar">${student.photo ? `<img src="${escapeHtml(student.photo)}" alt="">` : escapeHtml(initials(student.name))}</span>
-            <strong>${escapeHtml(lastFirstStudentName(student))}</strong>
+            ${studentListIdentityHtml(student, false)}
           </div>
           <div class="grade-choice-grid">
             ${gradeChoicesForCourse(course).map((grade) => `<button type="button" data-grade-choice="${escapeHtml(grade)}">${escapeHtml(grade)}</button>`).join("")}
