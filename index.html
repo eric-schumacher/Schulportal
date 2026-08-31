@@ -1906,6 +1906,215 @@
       box-shadow: inset 0 0 0 3px rgba(8, 121, 149, .16), 0 8px 18px rgba(8, 121, 149, .24);
     }
 
+    .coursebook-resources {
+      grid-column: 1 / -1;
+      min-width: 0;
+    }
+
+    .coursebook-resource-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .resource-action-button {
+      width: 64px;
+      min-width: 64px;
+      height: 64px;
+      min-height: 64px;
+      padding: 5px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      font-weight: 850;
+    }
+
+    .excel-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 8px;
+      display: grid;
+      grid-template-columns: 14px 1fr;
+      overflow: hidden;
+      color: #fff;
+      background: #16834a;
+      box-shadow: 0 7px 15px rgba(16, 112, 61, .28);
+    }
+
+    .excel-icon strong {
+      display: grid;
+      place-items: center;
+      background: #0f6b3b;
+      font-size: 20px;
+    }
+
+    .excel-icon span {
+      background:
+        linear-gradient(#fff6 1px, transparent 1px) 0 0 / 100% 9px,
+        linear-gradient(90deg, #fff6 1px, transparent 1px) 0 0 / 9px 100%;
+    }
+
+    .attachment-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .attachment-tile {
+      position: relative;
+      min-width: 0;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      display: grid;
+      grid-template-columns: 46px minmax(0, 1fr);
+      align-items: center;
+      gap: 9px;
+    }
+
+    .attachment-open {
+      display: contents;
+    }
+
+    .attachment-icon {
+      width: 46px;
+      height: 52px;
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 900;
+      background: #617386;
+    }
+
+    .attachment-icon.pdf {
+      background: #d52b32;
+    }
+
+    .attachment-icon.image {
+      background: linear-gradient(145deg, #2a8fca, #52aa65);
+      font-size: 22px;
+    }
+
+    .attachment-name {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      font-size: 13px;
+      font-weight: 720;
+    }
+
+    .attachment-delete {
+      position: absolute;
+      right: 3px;
+      top: 3px;
+      width: 25px;
+      min-height: 25px;
+      height: 25px;
+      padding: 0;
+      border-radius: 50%;
+      color: var(--danger);
+      background: #fff;
+    }
+
+    .file-viewer-modal,
+    .sheet-modal {
+      width: min(1100px, 96vw);
+      max-width: 1100px;
+    }
+
+    .file-viewer-body {
+      min-height: min(72vh, 760px);
+      display: grid;
+      place-items: center;
+      background: #eef3f6;
+      overflow: auto;
+    }
+
+    .file-viewer-body img {
+      max-width: 100%;
+      max-height: 72vh;
+      object-fit: contain;
+    }
+
+    .file-viewer-body iframe {
+      width: 100%;
+      height: 72vh;
+      border: 0;
+      background: #fff;
+    }
+
+    .sheet-wrap {
+      overflow: auto;
+      max-height: 72vh;
+    }
+
+    .coursebook-sheet {
+      border-collapse: separate;
+      border-spacing: 0;
+      min-width: 760px;
+      width: 100%;
+    }
+
+    .coursebook-sheet th,
+    .coursebook-sheet td {
+      border-right: 1px solid #b8c8d0;
+      border-bottom: 1px solid #b8c8d0;
+      padding: 0;
+      background: #fff;
+    }
+
+    .coursebook-sheet th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #dff1e7;
+    }
+
+    .coursebook-sheet .sheet-student {
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      min-width: 210px;
+      padding: 7px 10px;
+      background: #f4faf6;
+      font-weight: 760;
+    }
+
+    .coursebook-sheet th.sheet-student {
+      z-index: 3;
+      background: #16834a;
+      color: #fff;
+    }
+
+    .sheet-header-input,
+    .sheet-cell-input {
+      min-width: 170px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .sheet-header-box {
+      display: grid;
+      grid-template-columns: 1fr 28px;
+      align-items: center;
+    }
+
+    .sheet-delete-column {
+      width: 26px;
+      min-height: 26px;
+      height: 26px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--danger);
+    }
+
     .coursebook-area {
       min-height: 0;
       flex: 1;
@@ -3434,6 +3643,7 @@
       <button type="button" data-oral-action="list">Alle mündlichen Noten ansehen</button>
     </div>
     <input class="hidden" type="file" id="studentPhotoInput" accept="image/*">
+    <input class="hidden" type="file" id="coursebookAttachmentInput" accept="image/*,application/pdf" multiple>
     <div id="courseModal" class="modal-backdrop hidden">
       <section class="modal">
         <header>
@@ -3658,6 +3868,29 @@
           <button type="button" class="primary" id="spinWheelBtn">Drehen</button>
           <div id="randomResult" class="random-result"></div>
           <div id="confettiLayer" class="confetti-layer"></div>
+        </div>
+      </section>
+    </div>
+    <div id="coursebookFileModal" class="modal-backdrop hidden">
+      <section class="modal file-viewer-modal">
+        <header>
+          <span id="coursebookFileTitle">Datei</span>
+          <button type="button" class="icon" id="closeCoursebookFileBtn">x</button>
+        </header>
+        <div class="inside file-viewer-body" id="coursebookFileViewerBody"></div>
+      </section>
+    </div>
+    <div id="coursebookSheetModal" class="modal-backdrop hidden">
+      <section class="modal sheet-modal">
+        <header>
+          <span>Schülertabelle</span>
+          <button type="button" class="icon" id="closeCoursebookSheetBtn">x</button>
+        </header>
+        <div class="inside stack">
+          <div class="coursebook-resource-actions">
+            <button type="button" id="addCoursebookSheetColumnBtn">Spalte hinzufügen</button>
+          </div>
+          <div class="sheet-wrap" id="coursebookSheetContent"></div>
         </div>
       </section>
     </div>
@@ -4302,7 +4535,20 @@
       }
 
       function makeGroupBook(group, notes = "") {
-        return { group, notes, cardOrder: ["checklists", "notes", "birthdays", "events"] };
+        return {
+          group,
+          notes,
+          cardOrder: ["checklists", "notes", "birthdays", "events"],
+          attachments: [],
+          studentSheet: {
+            columns: [
+              { id: uid("sheetcol"), title: "Notiz 1" },
+              { id: uid("sheetcol"), title: "Notiz 2" },
+              { id: uid("sheetcol"), title: "Notiz 3" }
+            ],
+            cells: {}
+          }
+        };
       }
 
       function guessCourseGroup(name) {
@@ -5065,6 +5311,28 @@
         data.groupBooks.forEach((book) => {
           book.group = normalizeText(book.group || "");
           book.notes ||= "";
+          book.attachments = Array.isArray(book.attachments)
+            ? book.attachments.filter((item) => item && item.id && item.data)
+            : [];
+          book.studentSheet = book.studentSheet && typeof book.studentSheet === "object"
+            ? book.studentSheet
+            : { columns: [], cells: {} };
+          book.studentSheet.columns = Array.isArray(book.studentSheet.columns)
+            ? book.studentSheet.columns.map((column) => ({
+                id: column.id || uid("sheetcol"),
+                title: normalizeText(column.title || "Notiz")
+              }))
+            : [];
+          if (!book.studentSheet.columns.length) {
+            book.studentSheet.columns = [
+              { id: uid("sheetcol"), title: "Notiz 1" },
+              { id: uid("sheetcol"), title: "Notiz 2" },
+              { id: uid("sheetcol"), title: "Notiz 3" }
+            ];
+          }
+          book.studentSheet.cells = book.studentSheet.cells && typeof book.studentSheet.cells === "object"
+            ? book.studentSheet.cells
+            : {};
           const legacyDefaultOrder = ["birthdays", "events", "checklists", "notes"];
           const defaultOrder = ["checklists", "notes", "birthdays", "events"];
           const savedOrder = Array.isArray(book.cardOrder) ? book.cardOrder.filter((key) => defaultOrder.includes(key)) : [];
@@ -6567,6 +6835,93 @@
         `;
       }
 
+      function coursebookStudents(course) {
+        const unique = new Map();
+        groupedCourses(course).forEach((groupCourse) => {
+          groupCourse.students.forEach((student) => {
+            const key = nameKey(student.name);
+            if (key && !unique.has(key)) unique.set(key, student);
+          });
+        });
+        return [...unique.values()].sort((a, b) => {
+          const aParts = splitStudentName(a.name);
+          const bParts = splitStudentName(b.name);
+          const aLast = normalizeText(a.lastName || aParts.lastName || a.name);
+          const bLast = normalizeText(b.lastName || bParts.lastName || b.name);
+          return aLast.localeCompare(bLast, "de") || fullStudentName(a).localeCompare(fullStudentName(b), "de");
+        });
+      }
+
+      function coursebookAttachmentIcon(attachment) {
+        if (String(attachment.type).startsWith("image/")) return `<span class="attachment-icon image">▧</span>`;
+        return `<span class="attachment-icon pdf">PDF</span>`;
+      }
+
+      function coursebookAttachmentRows(book) {
+        return (book.attachments || []).map((attachment) => `
+          <div class="attachment-tile">
+            <button type="button" class="attachment-open" data-open-coursebook-attachment="${escapeHtml(attachment.id)}">
+              ${coursebookAttachmentIcon(attachment)}
+              <span class="attachment-name">${escapeHtml(attachment.name)}</span>
+            </button>
+            <button type="button" class="attachment-delete" data-delete-coursebook-attachment="${escapeHtml(attachment.id)}" title="Datei löschen" aria-label="Datei löschen">×</button>
+          </div>
+        `).join("");
+      }
+
+      function renderCoursebookSheet() {
+        const course = currentCourse();
+        const book = currentGroupBook(course);
+        const sheet = book.studentSheet;
+        const students = coursebookStudents(course);
+        const headers = sheet.columns.map((column) => `
+          <th>
+            <div class="sheet-header-box">
+              <input class="sheet-header-input" data-sheet-column-title="${escapeHtml(column.id)}" value="${escapeHtml(column.title)}" aria-label="Spaltenüberschrift">
+              <button type="button" class="sheet-delete-column" data-delete-sheet-column="${escapeHtml(column.id)}" title="Spalte löschen">×</button>
+            </div>
+          </th>
+        `).join("");
+        const rows = students.map((student) => {
+          const rowKey = nameKey(student.name);
+          const row = sheet.cells[rowKey] || {};
+          const cells = sheet.columns.map((column) => `
+            <td><input class="sheet-cell-input" data-sheet-row="${escapeHtml(rowKey)}" data-sheet-column="${escapeHtml(column.id)}" value="${escapeHtml(row[column.id] || "")}"></td>
+          `).join("");
+          return `<tr><td class="sheet-student">${escapeHtml(lastFirstStudentName(student))}</td>${cells}</tr>`;
+        }).join("");
+        $("#coursebookSheetContent").innerHTML = `
+          <table class="coursebook-sheet">
+            <thead><tr><th class="sheet-student">Schüler</th>${headers}</tr></thead>
+            <tbody>${rows || `<tr><td class="sheet-student">Keine Schüler</td></tr>`}</tbody>
+          </table>
+        `;
+      }
+
+      function openCoursebookSheet() {
+        renderCoursebookSheet();
+        $("#coursebookSheetModal").classList.remove("hidden");
+      }
+
+      function closeCoursebookSheet() {
+        $("#coursebookSheetModal").classList.add("hidden");
+      }
+
+      function openCoursebookAttachment(attachmentId) {
+        const attachment = currentGroupBook().attachments.find((item) => item.id === attachmentId);
+        if (!attachment) return;
+        $("#coursebookFileTitle").textContent = attachment.name || "Datei";
+        $("#coursebookFileViewerBody").innerHTML = String(attachment.type).startsWith("image/")
+          ? `<img src="${attachment.data}" alt="${escapeHtml(attachment.name)}">`
+          : `<iframe src="${attachment.data}" title="${escapeHtml(attachment.name)}"></iframe>`;
+        $("#coursebookFileModal").classList.remove("hidden");
+      }
+
+      function closeCoursebookAttachment() {
+        $("#coursebookFileModal").classList.add("hidden");
+        $("#coursebookFileViewerBody").innerHTML = "";
+      }
+
       function renderCoursebook(course) {
         const book = currentGroupBook(course);
         const birthdayWindow = birthdayWindowStudents(course);
@@ -6658,6 +7013,22 @@
           <div class="coursebook-area">
             <div class="coursebook-column">${leftCoursebookCards.join("")}</div>
             <div class="coursebook-column">${rightCoursebookCards.join("")}</div>
+            <section class="plain-section coursebook-resources">
+              <header>Dateien und Schülertabelle</header>
+              <div class="inside">
+                <div class="coursebook-resource-actions">
+                  <button type="button" class="resource-action-button" id="addCoursebookAttachmentBtn" title="Bild oder PDF hinzufügen" aria-label="Bild oder PDF hinzufügen">
+                    <span class="attachment-icon image">＋</span>
+                  </button>
+                  <button type="button" class="resource-action-button" id="openCoursebookSheetBtn" title="Schülertabelle öffnen" aria-label="Schülertabelle öffnen">
+                    <span class="excel-icon"><strong>X</strong><span></span></span>
+                  </button>
+                </div>
+                <div class="attachment-grid">
+                  ${coursebookAttachmentRows(book) || `<span class="muted">Noch keine Bilder oder PDF-Dateien abgelegt.</span>`}
+                </div>
+              </div>
+            </section>
           </div>
         `;
       }
@@ -9368,6 +9739,53 @@
         if (event.target.id === "cameraModal") closeCameraModal();
       });
 
+      $("#closeCoursebookFileBtn").addEventListener("click", closeCoursebookAttachment);
+      $("#coursebookFileModal").addEventListener("click", (event) => {
+        if (event.target.id === "coursebookFileModal") closeCoursebookAttachment();
+      });
+      $("#closeCoursebookSheetBtn").addEventListener("click", closeCoursebookSheet);
+      $("#coursebookSheetModal").addEventListener("click", (event) => {
+        if (event.target.id === "coursebookSheetModal") closeCoursebookSheet();
+      });
+      $("#addCoursebookSheetColumnBtn").addEventListener("click", () => {
+        const sheet = currentGroupBook().studentSheet;
+        sheet.columns.push({ id: uid("sheetcol"), title: `Notiz ${sheet.columns.length + 1}` });
+        save();
+        renderCoursebookSheet();
+      });
+      $("#coursebookSheetContent").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-delete-sheet-column]");
+        if (!button) return;
+        const sheet = currentGroupBook().studentSheet;
+        if (sheet.columns.length <= 1) {
+          alert("Mindestens eine Notizspalte bleibt erhalten.");
+          return;
+        }
+        const columnId = button.dataset.deleteSheetColumn;
+        sheet.columns = sheet.columns.filter((column) => column.id !== columnId);
+        Object.values(sheet.cells).forEach((row) => {
+          if (row && typeof row === "object") delete row[columnId];
+        });
+        save();
+        renderCoursebookSheet();
+      });
+      $("#coursebookSheetContent").addEventListener("input", (event) => {
+        const book = currentGroupBook();
+        const sheet = book.studentSheet;
+        if (event.target.matches("[data-sheet-column-title]")) {
+          const column = sheet.columns.find((item) => item.id === event.target.dataset.sheetColumnTitle);
+          if (column) column.title = event.target.value;
+          save();
+          return;
+        }
+        if (event.target.matches("[data-sheet-row][data-sheet-column]")) {
+          const rowKey = event.target.dataset.sheetRow;
+          sheet.cells[rowKey] ||= {};
+          sheet.cells[rowKey][event.target.dataset.sheetColumn] = event.target.value;
+          save();
+        }
+      });
+
       $("#calendarEventModal").addEventListener("click", (event) => {
         if (event.target.id === "calendarEventModal") closeCalendarEventModal();
       });
@@ -9699,6 +10117,39 @@
         }
       });
 
+      $("#coursebookAttachmentInput").addEventListener("change", async (event) => {
+        const files = [...event.target.files];
+        if (!files.length) return;
+        const book = currentGroupBook();
+        try {
+          for (const file of files) {
+            const supported = file.type === "application/pdf" || file.type.startsWith("image/");
+            if (!supported) {
+              alert(`"${file.name}" ist kein Bild oder PDF und wurde nicht hinzugefügt.`);
+              continue;
+            }
+            if (file.size > 20 * 1024 * 1024) {
+              alert(`"${file.name}" ist größer als 20 MB und wurde nicht hinzugefügt.`);
+              continue;
+            }
+            book.attachments.push({
+              id: uid("attachment"),
+              name: file.name || "Datei",
+              type: file.type || "application/octet-stream",
+              size: file.size || 0,
+              created: new Date().toISOString(),
+              data: await readFileAsDataUrl(file)
+            });
+          }
+          await save();
+          renderCoursebook(currentCourse());
+        } catch (error) {
+          alert(error.message || "Die Datei konnte nicht gespeichert werden.");
+        } finally {
+          event.target.value = "";
+        }
+      });
+
       $("#exportBtn").addEventListener("click", configureAutomaticBackup);
 
       $("#importBtn").addEventListener("click", () => $("#importFile").click());
@@ -9850,6 +10301,34 @@
       });
 
       $("#mainContent").addEventListener("click", (event) => {
+        if (event.target.closest("#addCoursebookAttachmentBtn")) {
+          $("#coursebookAttachmentInput").click();
+          return;
+        }
+
+        if (event.target.closest("#openCoursebookSheetBtn")) {
+          openCoursebookSheet();
+          return;
+        }
+
+        const openAttachment = event.target.closest("[data-open-coursebook-attachment]");
+        if (openAttachment) {
+          openCoursebookAttachment(openAttachment.dataset.openCoursebookAttachment);
+          return;
+        }
+
+        const deleteAttachment = event.target.closest("[data-delete-coursebook-attachment]");
+        if (deleteAttachment) {
+          const book = currentGroupBook();
+          const attachment = book.attachments.find((item) => item.id === deleteAttachment.dataset.deleteCoursebookAttachment);
+          if (attachment && confirm(`Datei "${attachment.name}" löschen?`)) {
+            book.attachments = book.attachments.filter((item) => item.id !== attachment.id);
+            save();
+            renderCoursebook(currentCourse());
+          }
+          return;
+        }
+
         const studentPhoto = event.target.closest("[data-enlarge-student-photo]");
         if (studentPhoto) {
           openStudentPhotoLightbox(studentPhoto);
