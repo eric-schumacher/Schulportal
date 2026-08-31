@@ -571,7 +571,7 @@
     .workspace {
       min-height: 0;
       display: grid;
-      grid-template-columns: var(--courses-width, 300px) var(--students-width, 280px) minmax(520px, 1fr);
+      grid-template-columns: var(--courses-width, 270px) var(--students-width, 252px) minmax(520px, 1fr);
       overflow: hidden;
     }
 
@@ -3239,8 +3239,8 @@
 
     @media (max-width: 1160px) {
       .workspace {
-        --courses-width: 250px;
-        --students-width: 250px;
+        --courses-width: 225px;
+        --students-width: 225px;
         grid-template-columns: var(--courses-width) var(--students-width) minmax(460px, 1fr);
       }
 
@@ -9579,9 +9579,6 @@
         if (tabButton) {
           view.tab = tabButton.dataset.tab;
           view.editingEntryId = null;
-          if (["grades", "tracking", "overview", "checklists"].includes(view.tab)) {
-            setSidePanelsCollapsed(true);
-          }
           if (view.tab === "checklists") {
             view.selectedChecklistId = null;
             view.selectedChecklistCourseId = null;
@@ -9995,13 +9992,6 @@
       });
 
       $("#studentPhotoLightbox").addEventListener("click", closeStudentPhotoLightbox);
-
-      function setSidePanelsCollapsed(collapsed) {
-        $("#workspace").classList.toggle("courses-collapsed", collapsed);
-        $("#workspace").classList.toggle("students-collapsed", collapsed);
-        $("#coursesPanel").classList.toggle("collapsed", collapsed);
-        $("#studentsPanel").classList.toggle("collapsed", collapsed);
-      }
 
       function toggleCoursesPanel() {
         $("#workspace").classList.toggle("courses-collapsed");
