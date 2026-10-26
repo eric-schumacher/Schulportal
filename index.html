@@ -5922,6 +5922,25 @@
         };
       }
 
+      function studentAbsenceSummaries(course, studentId) {
+        const summaries = new Map();
+        const add = (labels, type, count) => {
+          const label = type === "homework" ? labels.homeworkShort : labels.materialShort;
+          const key = type + ":" + label;
+          if (!summaries.has(key)) summaries.set(key, { label, count: 0 });
+          summaries.get(key).count += count;
+        };
+        const currentLabels = absenceLabels(course);
+        add(currentLabels, "homework", 0);
+        add(currentLabels, "material", 0);
+        groupStudentEntries(course, studentId).forEach((item) => {
+          const labels = absenceLabels(item.course);
+          if (item.homework) add(labels, "homework", 1);
+          if (item.material) add(labels, "material", 1);
+        });
+        return [...summaries.values()];
+      }
+
       function studentCountsInCourse(groupCourse, sourceStudent) {
         const ids = new Set(matchingStudentIds(groupCourse, sourceStudent));
         let homework = 0;
@@ -6729,11 +6748,11 @@
           <div class="mark-row">
             ${studentDisplay}
             <label class="absence-mark-cell" title="${escapeHtml(labels.homeworkLong)} · bisher ${homeworkCount}">
-              <input type="checkbox" name="homeworkMissing" value="${escapeHtml(student.id)}" data-absence-base-count="${homeworkBaseCount}" ${homeworkMissing.has(student.id) ? "checked" : ""}>
+              <input type="checkbox" name="homeworkMissing" aria-label="${escapeHtml(labels.homeworkLong)} – ${escapeHtml(student.name)}" value="${escapeHtml(student.id)}" data-absence-base-count="${homeworkBaseCount}" ${homeworkMissing.has(student.id) ? "checked" : ""}>
               <span class="absence-count" aria-label="Aktueller Stand ${homeworkCount}">${homeworkCount}</span>
             </label>
             <label class="absence-mark-cell" title="${escapeHtml(labels.materialLong)} · bisher ${materialCount}">
-              <input type="checkbox" name="materialMissing" value="${escapeHtml(student.id)}" data-absence-base-count="${materialBaseCount}" ${materialMissing.has(student.id) ? "checked" : ""}>
+              <input type="checkbox" name="materialMissing" aria-label="${escapeHtml(labels.materialLong)} – ${escapeHtml(student.name)}" value="${escapeHtml(student.id)}" data-absence-base-count="${materialBaseCount}" ${materialMissing.has(student.id) ? "checked" : ""}>
               <span class="absence-count" aria-label="Aktueller Stand ${materialCount}">${materialCount}</span>
             </label>
           </div>
@@ -6799,10 +6818,10 @@
           <div class="mark-row">
             ${studentListIdentityHtml(student)}
             <label title="${escapeHtml(labels.homeworkLong)}">
-              <input type="checkbox" name="homeworkMissing" value="${escapeHtml(student.id)}" ${homeworkMissing.has(student.id) ? "checked" : ""}>
+              <input type="checkbox" name="homeworkMissing" aria-label="${escapeHtml(labels.homeworkLong)} – ${escapeHtml(student.name)}" value="${escapeHtml(student.id)}" ${homeworkMissing.has(student.id) ? "checked" : ""}>
             </label>
             <label title="${escapeHtml(labels.materialLong)}">
-              <input type="checkbox" name="materialMissing" value="${escapeHtml(student.id)}" ${materialMissing.has(student.id) ? "checked" : ""}>
+              <input type="checkbox" name="materialMissing" aria-label="${escapeHtml(labels.materialLong)} – ${escapeHtml(student.name)}" value="${escapeHtml(student.id)}" ${materialMissing.has(student.id) ? "checked" : ""}>
             </label>
           </div>
         `).join("");
@@ -7519,7 +7538,7 @@
             </div>
           `;
         }).join("");
-        const counts = studentCounts(course, student.id);
+        const absenceSummaries = studentAbsenceSummaries(course, student.id);
         const sharedBirthdate = sharedBirthdateForStudent(course, student.id);
         const remarkRows = (student.remarks || []).map((remark) => `
           <div class="data-line">
@@ -7534,7 +7553,7 @@
           if (item.material) labels.push(labelsForCourse.materialLong);
           return `
           <div class="data-line">
-            <span class="muted">${formatDate(item.entry.date)}</span>
+            <span class="muted">${formatDate(item.entry.date)}<br><small>${escapeHtml(item.course.name)}</small></span>
             <span><strong>${escapeHtml(labels.join(" · "))}</strong>${item.entry.note ? `<br><span class="muted">${escapeHtml(item.entry.note)}</span>` : ""}</span>
           </div>
         `;
@@ -7586,8 +7605,7 @@
                 <header>Versäumnisse</header>
                 <div class="inside">
                   <div class="data-list">
-                    <div class="data-line"><span class="muted">${escapeHtml(absenceLabels(course).homeworkShort)}</span><span class="pill">${counts.homework}</span></div>
-                    <div class="data-line"><span class="muted">${escapeHtml(absenceLabels(course).materialShort)}</span><span class="pill">${counts.material}</span></div>
+                    ${absenceSummaries.map((item) => `<div class="data-line"><span class="muted">${escapeHtml(item.label)}</span><span class="pill">${item.count}</span></div>`).join("")}
                     ${trackingRows || `<span class="muted">${escapeHtml(absenceLabels(course).emptyText)}</span>`}
                   </div>
                 </div>
