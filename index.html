@@ -4781,24 +4781,6 @@
         return half === "2" ? `${startYear + 1}-02-01` : `${startYear}-07-01`;
       }
 
-      function epoGradeFromEntries(entries, course) {
-        if (!entries.length) return "";
-        const average = entries.reduce((sum, entry) => sum + Number(entry.value || 0), 0) / entries.length;
-        if (isUpperSchoolCourse(course)) {
-          return String(Math.max(0, Math.min(15, Math.round(((average + 2) / 4) * 15))));
-        }
-        if (average >= 1.6) return "1";
-        if (average >= 1.2) return "1-";
-        if (average >= .8) return "2";
-        if (average >= .4) return "2-";
-        if (average >= 0) return "3";
-        if (average >= -.4) return "3-";
-        if (average >= -.8) return "4";
-        if (average >= -1.2) return "4-";
-        if (average >= -1.6) return "5";
-        return "6";
-      }
-
       function epoEntriesFor(course, studentId, periodKey = currentEpoPeriodKey(), category = "") {
         return (course.epoEntries || []).filter((entry) => (
           entry.studentId === studentId
@@ -4807,62 +4789,28 @@
         ));
       }
 
-      function syncEpoGradeColumns(course) {
+      function normalizeEpoCounters(course) {
         if (!course || !Array.isArray(course.gradeColumns)) return;
+        // Remove only the columns previously generated from thumb counts.
+        course.gradeColumns = course.gradeColumns.filter((column) => !column.autoEpo);
         const categories = epoCategoriesForCourse(course);
-        if (!categories.length) {
-          course.gradeColumns = course.gradeColumns.filter((column) => !column.autoEpo);
-          return;
-        }
-        course.epoEntries = Array.isArray(course.epoEntries) ? course.epoEntries : [];
         const studentIds = new Set((course.students || []).map((student) => student.id));
-        course.epoEntries = course.epoEntries
+        course.epoEntries = (Array.isArray(course.epoEntries) ? course.epoEntries : [])
           .map((entry) => ({
+            ...entry,
             id: entry.id || uid("epo"),
             studentId: entry.studentId || "",
-            category: categories.includes(entry.category) ? entry.category : categories[0],
+            category: categories.includes(entry.category) ? entry.category : (categories[0] || entry.category || "Verhalten"),
             value: Number(entry.value || 0),
             date: entry.date || todayIso(),
             periodKey: entry.periodKey || epoPeriodFromDate(entry.date || todayIso())
           }))
           .filter((entry) => studentIds.has(entry.studentId) && epoThumbOptions.some((option) => option.value === entry.value));
-        const periodKeys = [...new Set(course.epoEntries.map((entry) => entry.periodKey))].sort();
-        course.gradeColumns = course.gradeColumns.filter((column) => !column.autoEpo || periodKeys.includes(column.epoPeriodKey));
-        periodKeys.forEach((periodKey) => {
-          let column = course.gradeColumns.find((item) => item.autoEpo && item.epoPeriodKey === periodKey);
-          if (!column) {
-            column = {
-              id: uid("g"),
-              title: `EPO ${epoPeriodLabel(periodKey)}`,
-              category: "sonstige Leistung",
-              date: epoPeriodDate(periodKey),
-              half: epoPeriodHalf(periodKey),
-              weight: 1,
-              grades: {},
-              autoEpo: true,
-              epoPeriodKey: periodKey
-            };
-            course.gradeColumns.push(column);
-          }
-          column.title = `EPO ${epoPeriodLabel(periodKey)}`;
-          column.category = "sonstige Leistung";
-          column.date = column.date || epoPeriodDate(periodKey);
-          column.half = epoPeriodHalf(periodKey);
-          column.weight = Number(column.weight || 1);
-          column.autoEpo = true;
-          column.epoPeriodKey = periodKey;
-          const grades = {};
-          (course.students || []).forEach((student) => {
-            const grade = epoGradeFromEntries(epoEntriesFor(course, student.id, periodKey), course);
-            if (grade) grades[student.id] = grade;
-          });
-          column.grades = grades;
-        });
       }
 
-      function syncAllEpoGradeColumns() {
+      function normalizeAllEpoCounters() {
         if (!state || !Array.isArray(state.courses)) return;
-        state.courses.forEach(syncEpoGradeColumns);
+        state.courses.forEach(normalizeEpoCounters);
       }
 
       function oralEntriesFor(course, studentId, periodKey = "") {
@@ -4940,7 +4888,7 @@
       }
 
       function syncAllAutomaticGradeColumns() {
-        syncAllEpoGradeColumns();
+        normalizeAllEpoCounters();
         syncAllOralGradeColumns();
       }
 
@@ -4982,7 +4930,7 @@
           date: todayIso(),
           periodKey: currentEpoPeriodKey()
         });
-        syncEpoGradeColumns(course);
+        normalizeEpoCounters(course);
         save();
       }
 
@@ -4992,7 +4940,7 @@
         const last = entries.at(-1);
         if (!last) return false;
         course.epoEntries = course.epoEntries.filter((entry) => entry.id !== last.id);
-        syncEpoGradeColumns(course);
+        normalizeEpoCounters(course);
         save();
         return true;
       }
@@ -5000,66 +4948,9 @@
       function deleteEpoThumb(course, entryId) {
         if (!(course.epoEntries || []).some((entry) => entry.id === entryId)) return false;
         course.epoEntries = course.epoEntries.filter((entry) => entry.id !== entryId);
-        syncEpoGradeColumns(course);
+        normalizeEpoCounters(course);
         save();
         return true;
-      }
-
-      function primaryEpoCategory(course) {
-        return epoCategoriesForCourse(course)[0] || "";
-      }
-
-      function absenceThumbKey(studentId, type) {
-        return `${studentId}:${type}`;
-      }
-
-      function absenceThumbStudentId(mark) {
-        return String(mark || "").split(":")[0];
-      }
-
-      function absenceThumbWasRecorded(entry, studentId, type) {
-        const marks = Array.isArray(entry.epoThumbStudentIds) ? entry.epoThumbStudentIds : [];
-        return marks.includes(absenceThumbKey(studentId, type)) || marks.includes(studentId);
-      }
-
-      function markAbsenceThumbRecorded(entry, studentId, type) {
-        entry.epoThumbStudentIds ||= [];
-        entry.epoThumbStudentIds.push(absenceThumbKey(studentId, type));
-      }
-
-      function absenceEpoThumbValue(course, type) {
-        return isSportCourse(course) && type === "homework" ? -1 : -2;
-      }
-
-      function addEpoThumbFromAbsence(course, studentId, date = todayIso(), type = "absence") {
-        const category = primaryEpoCategory(course);
-        if (!category || !studentId) return false;
-        course.epoEntries ||= [];
-        course.epoEntries.push({
-          id: uid("epo"),
-          studentId,
-          category,
-          value: absenceEpoThumbValue(course, type),
-          date: date || todayIso(),
-          periodKey: epoPeriodFromDate(date || todayIso()),
-          source: `absence-${type}`
-        });
-        syncEpoGradeColumns(course);
-        return true;
-      }
-
-      function syncAbsenceEpoThumbs(course, entry) {
-        const category = primaryEpoCategory(course);
-        if (!category || !entry) return;
-        entry.epoThumbStudentIds = Array.isArray(entry.epoThumbStudentIds) ? entry.epoThumbStudentIds : [];
-        (entry.homeworkMissing || []).forEach((studentId) => {
-          if (absenceThumbWasRecorded(entry, studentId, "homework")) return;
-          if (addEpoThumbFromAbsence(course, studentId, entry.date || todayIso(), "homework")) markAbsenceThumbRecorded(entry, studentId, "homework");
-        });
-        (entry.materialMissing || []).forEach((studentId) => {
-          if (absenceThumbWasRecorded(entry, studentId, "material")) return;
-          if (addEpoThumbFromAbsence(course, studentId, entry.date || todayIso(), "material")) markAbsenceThumbRecorded(entry, studentId, "material");
-        });
       }
 
       function groupKey(course) {
@@ -5339,6 +5230,7 @@
           });
           course.epoEntries = course.epoEntries
             .map((entry) => ({
+              ...entry,
               id: entry.id || uid("epo"),
               studentId: entry.studentId || "",
               category: entry.category || "",
@@ -5347,7 +5239,7 @@
               periodKey: entry.periodKey || epoPeriodFromDate(entry.date || todayIso())
             }))
             .filter((entry) => studentIds.has(entry.studentId));
-          syncEpoGradeColumns(course);
+          normalizeEpoCounters(course);
           course.oralEntries = course.oralEntries
             .map((entry) => ({
               id: entry.id || uid("oral"),
@@ -5366,9 +5258,7 @@
             entry.materialMissing = Array.isArray(entry.materialMissing) ? entry.materialMissing : [];
             entry.homeworkMissing = entry.homeworkMissing.filter((id) => studentIds.has(id));
             entry.materialMissing = entry.materialMissing.filter((id) => studentIds.has(id));
-            entry.epoThumbStudentIds = Array.isArray(entry.epoThumbStudentIds)
-              ? entry.epoThumbStudentIds.filter((mark) => studentIds.has(absenceThumbStudentId(mark)))
-              : [];
+            delete entry.epoThumbStudentIds;
           });
           course.checklists.forEach((list) => {
             list.id ||= uid("cl");
@@ -6084,10 +5974,7 @@
           entry[field] = list.filter((id) => id !== studentId);
         } else {
           list.push(studentId);
-          entry.epoThumbStudentIds = Array.isArray(entry.epoThumbStudentIds) ? entry.epoThumbStudentIds : [];
-          if (!absenceThumbWasRecorded(entry, studentId, mode)) {
-            if (addEpoThumbFromAbsence(course, studentId, entry.date || todayIso(), mode)) markAbsenceThumbRecorded(entry, studentId, mode);
-          }
+
         }
         if (!entry.homeworkMissing.length && !entry.materialMissing.length) {
           course.checkEntries = course.checkEntries.filter((item) => item.id !== entry.id);
@@ -6922,15 +6809,10 @@
       function saveTrackingValues(course, values) {
         const index = course.checkEntries.findIndex((entry) => entry.id === values.id);
         if (index >= 0) {
-          values.epoThumbStudentIds = Array.isArray(course.checkEntries[index].epoThumbStudentIds)
-            ? course.checkEntries[index].epoThumbStudentIds
-            : [];
           course.checkEntries[index] = values;
         } else {
-          values.epoThumbStudentIds = [];
           course.checkEntries.unshift(values);
         }
-        syncAbsenceEpoThumbs(course, values);
       }
 
       function renderTracking(...args) { return keepScrollWhile(() => renderTrackingContent(...args)); }
@@ -7312,7 +7194,6 @@
         const periodKey = currentEpoPeriodKey();
         const periodRange = epoPeriodHalf(periodKey) === "1" ? "Juli bis Januar" : "Februar bis Juni";
         const entries = epoEntriesFor(course, student.id, periodKey);
-        const grade = epoGradeFromEntries(entries, course);
         const rows = categories.map((category) => {
           const categoryEntries = epoEntriesFor(course, student.id, periodKey, category);
           const buttons = epoThumbOptions.map((option) => {
@@ -7337,9 +7218,10 @@
             <div class="inside">
               <div class="epo-summary">
                 <span>${escapeHtml(epoPeriodLabel(periodKey))} · ${escapeHtml(periodRange)}</span>
-                <span>${grade ? `EPO-Note <span class="pill">${escapeHtml(grade)}</span>` : "Noch keine Daumen"}</span>
+                <span>${entries.length} Daumen erfasst</span>
               </div>
               ${rows}
+              <p class="muted">Daumen werden nur gezählt und nicht in eine Note umgerechnet.</p>
               ${entries.length ? `<button type="button" data-undo-epo-thumb>Letzten Daumen rückgängig</button>` : ""}
             </div>
           </section>
@@ -7357,7 +7239,6 @@
         const periodKey = currentEpoPeriodKey();
         const periodRange = epoPeriodHalf(periodKey) === "1" ? "Juli bis Januar" : "Februar bis Juni";
         const entries = epoEntriesFor(course, student.id, periodKey);
-        const grade = epoGradeFromEntries(entries, course);
         const history = [...entries].reverse().map((entry) => {
           const option = epoThumbOptions.find((item) => item.value === entry.value);
           return `<div class="data-line"><span>${escapeHtml(formatDate(entry.date))} · ${escapeHtml(entry.category)} · ${escapeHtml(option?.icon || "")}</span><button type="button" data-delete-epo-entry="${escapeHtml(entry.id)}">Rückgängig</button></div>`;
@@ -7390,8 +7271,9 @@
           <div class="data-list" style="margin-bottom:14px;">
             <div class="data-line"><span class="muted">Schüler</span><span>${escapeHtml(student.name)}</span></div>
             <div class="data-line"><span class="muted">Zeitraum</span><span>${escapeHtml(epoPeriodLabel(periodKey))} · ${escapeHtml(periodRange)}</span></div>
-            <div class="data-line"><span class="muted">EPO-Note</span><span class="pill">${grade ? escapeHtml(grade) : "/"}</span></div>
+            <div class="data-line"><span class="muted">Erfasste Daumen</span><span class="pill">${entries.length}</span></div>
           </div>
+          <p class="muted">Daumen werden nur gezählt und beeinflussen keine Note.</p>
           <div class="epo-detail-grid">
             <div class="epo-detail-row">
               <div class="epo-detail-cell epo-detail-head">Kategorie</div>
@@ -7637,7 +7519,11 @@
               <section class="plain-section">
                 <header>Versäumnisse</header>
                 <div class="inside">
-                  <div class="data-list">${trackingRows || `<span class="muted">${escapeHtml(absenceLabels(course).emptyText)}</span>`}</div>
+                  <div class="data-list">
+                    <div class="data-line"><span class="muted">${escapeHtml(absenceLabels(course).homeworkShort)}</span><span class="pill">${counts.homework}</span></div>
+                    <div class="data-line"><span class="muted">${escapeHtml(absenceLabels(course).materialShort)}</span><span class="pill">${counts.material}</span></div>
+                    ${trackingRows || `<span class="muted">${escapeHtml(absenceLabels(course).emptyText)}</span>`}
+                  </div>
                 </div>
               </section>
             </div>
@@ -7802,15 +7688,13 @@
             });
           });
           groupCourse.epoEntries = (groupCourse.epoEntries || []).filter((entry) => !idsToRemove.includes(entry.studentId));
-          syncEpoGradeColumns(groupCourse);
+          normalizeEpoCounters(groupCourse);
           groupCourse.oralEntries = (groupCourse.oralEntries || []).filter((entry) => !idsToRemove.includes(entry.studentId));
           syncOralGradeColumns(groupCourse);
           groupCourse.checkEntries.forEach((entry) => {
             entry.homeworkMissing = entry.homeworkMissing.filter((id) => !idsToRemove.includes(id));
             entry.materialMissing = entry.materialMissing.filter((id) => !idsToRemove.includes(id));
-            entry.epoThumbStudentIds = Array.isArray(entry.epoThumbStudentIds)
-              ? entry.epoThumbStudentIds.filter((mark) => !idsToRemove.includes(absenceThumbStudentId(mark)))
-              : [];
+            delete entry.epoThumbStudentIds;
           });
           groupCourse.checklists.forEach((list) => {
             list.done = list.done.filter((id) => !idsToRemove.includes(id));
