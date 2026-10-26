@@ -3466,28 +3466,6 @@
     }
     .column-resizer:hover::after, .column-resizer:focus-visible::after,
     .column-resizer.resizing::after { background: var(--accent); opacity: 1; }
-    .column-resizer-grip {
-      position: absolute;
-      z-index: 1;
-      top: 50%;
-      left: 0;
-      width: 32px;
-      height: 68px;
-      transform: translateY(-50%);
-      display: grid;
-      place-items: center;
-      border: 2px solid var(--line-strong);
-      border-radius: 12px;
-      background: #f0fbff;
-      color: var(--accent);
-      font-size: 24px;
-      line-height: 1;
-      box-shadow: 0 3px 10px rgba(20, 35, 50, .15);
-      pointer-events: none;
-    }
-    .column-resizer:hover .column-resizer-grip,
-    .column-resizer:focus-visible .column-resizer-grip,
-    .column-resizer.resizing .column-resizer-grip { border-color: var(--accent); background: var(--accent-soft); }
     .panel:not(.collapsed) .panel-title-button { min-height: 40px; padding: 6px 8px; margin-left: -8px; border-radius: 8px; }
     .panel-title-button:hover { background: rgba(255, 255, 255, .65); }
     .column-resizer:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
@@ -3789,7 +3767,7 @@
         <div class="panel-body">
           <div id="courseList" class="stack"></div>
         </div>
-        <div class="column-resizer" id="coursesResizer" role="separator" aria-orientation="vertical" aria-label="Breite von Kursen und Schülern ändern" aria-controls="coursesPanel studentsPanel" tabindex="0" title="Griff gedrückt halten und seitlich ziehen · Doppelklick zum Zurücksetzen"><span class="column-resizer-grip" aria-hidden="true">↔</span></div>
+        <div class="column-resizer" id="coursesResizer" role="separator" aria-orientation="vertical" aria-label="Breite von Kursen und Schülern ändern" aria-controls="coursesPanel studentsPanel" tabindex="0" title="Griff gedrückt halten und seitlich ziehen · Doppelklick zum Zurücksetzen"></div>
       </aside>
 
       <aside class="panel students" id="studentsPanel">
@@ -3813,7 +3791,7 @@
           </div>
           <div id="studentList" class="student-list"></div>
         </div>
-        <div class="column-resizer" id="studentsResizer" role="separator" aria-orientation="vertical" aria-label="Breite von Schülern und Arbeitsbereich ändern" aria-controls="studentsPanel mainContent" tabindex="0" title="Griff gedrückt halten und seitlich ziehen · Doppelklick zum Zurücksetzen"><span class="column-resizer-grip" aria-hidden="true">↔</span></div>
+        <div class="column-resizer" id="studentsResizer" role="separator" aria-orientation="vertical" aria-label="Breite von Schülern und Arbeitsbereich ändern" aria-controls="studentsPanel mainContent" tabindex="0" title="Griff gedrückt halten und seitlich ziehen · Doppelklick zum Zurücksetzen"></div>
       </aside>
 
       <main class="main">
