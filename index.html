@@ -3637,6 +3637,7 @@
     <div id="gradeColumnMenu" class="context-menu hidden">
       <button type="button" data-grade-action="info">Infos anzeigen</button>
       <button type="button" data-grade-action="edit-grades">Noten ändern</button>
+      <button type="button" class="danger" data-grade-action="delete">Leistung löschen</button>
     </div>
     <div id="oralMenu" class="context-menu hidden">
       <button type="button" data-oral-action="edit">Eingetragene Noten ändern</button>
@@ -8454,6 +8455,17 @@
         renderMain(currentCourse());
       }
 
+      function deleteGradeColumn(columnId) {
+        const course = currentCourse();
+        if (!course) return;
+        const column = course.gradeColumns.find((item) => item.id === columnId);
+        if (!column || column.autoEpo || column.autoOral) return;
+        if (!confirm(`Leistung "${column.title || "Leistung"}" vollständig löschen?\n\nAlle zugehörigen Noten werden ebenfalls gelöscht. Dies kann nicht rückgängig gemacht werden.`)) return;
+        course.gradeColumns = course.gradeColumns.filter((item) => item.id !== column.id);
+        save();
+        render();
+      }
+
       function openGradeInfoModal(columnId) {
         const course = currentCourse();
         const column = course.gradeColumns.find((item) => item.id === columnId);
@@ -9524,6 +9536,7 @@
           if (!columnId) return;
           if (gradeAction.dataset.gradeAction === "info") openGradeInfoModal(columnId);
           if (gradeAction.dataset.gradeAction === "edit-grades") startGradeWizardForColumn(columnId);
+          if (gradeAction.dataset.gradeAction === "delete") deleteGradeColumn(columnId);
           return;
         }
 
@@ -9590,13 +9603,7 @@
 
         const deleteColumn = event.target.closest("[data-delete-column]");
         if (deleteColumn) {
-          const course = currentCourse();
-          const column = course.gradeColumns.find((item) => item.id === deleteColumn.dataset.deleteColumn);
-          if (column && confirm(`Leistung "${column.title}" löschen?`)) {
-            course.gradeColumns = course.gradeColumns.filter((item) => item.id !== column.id);
-            save();
-            render();
-          }
+          deleteGradeColumn(deleteColumn.dataset.deleteColumn);
           return;
         }
 
