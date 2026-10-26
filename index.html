@@ -3028,14 +3028,30 @@
     }
 
     .wizard-student-card {
-      display: grid;
-      grid-template-columns: 58px 1fr;
-      align-items: center;
-      gap: 12px;
+      min-width: 0;
       padding: 12px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: var(--panel-2);
+    }
+
+    .wizard-student-card .student-list-identity {
+      grid-template-columns: 58px minmax(0, 1fr);
+      gap: 12px;
+    }
+
+    .wizard-student-card .avatar {
+      width: 58px;
+      height: 58px;
+    }
+
+    .wizard-student-card .student-list-identity-first,
+    .wizard-student-card .student-list-identity-last {
+      overflow: visible;
+      text-overflow: clip;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      line-height: 1.35;
     }
 
     #gradeEntryStep {
