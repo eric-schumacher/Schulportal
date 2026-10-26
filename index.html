@@ -3326,6 +3326,82 @@
       }
     }
 
+
+    /* Keep the available display width usable, including split-screen and phones. */
+    .app { min-height: 0; grid-template-rows: auto minmax(0, 1fr); }
+    .topbar { min-height: 62px; }
+    .workspace { grid-template-columns: var(--courses-width, clamp(180px, 18vw, 270px)) var(--students-width, clamp(190px, 19vw, 252px)) minmax(0, 1fr); }
+    .workspace.home-view { grid-template-columns: minmax(0, 430px); }
+    .main { container-type: inline-size; }
+    .toolbar { grid-template-columns: repeat(auto-fit, minmax(min(130px, 100%), 1fr)); }
+    .toolbar > *, .form-grid > *, .plain-section, .inside { min-width: 0; }
+    .student-item { grid-template-columns: 48px minmax(0, 1fr) 30px; }
+    .student-tools { grid-template-columns: minmax(0, 1fr) auto; }
+    .student-tools #studentSearch { grid-column: 1 / -1; }
+    .checklist-layout { grid-template-columns: minmax(180px, .65fr) minmax(0, 1.35fr); }
+    .student-list-identity-first, .student-list-identity-last { white-space: normal; overflow-wrap: anywhere; }
+    .modal { max-height: calc(100dvh - 32px); max-width: 100%; }
+    .modal-backdrop { padding: 16px; }
+    .grade-view-switch { display: flex; gap: 8px; flex-wrap: wrap; }
+    .grade-view-switch button { flex: 1; min-height: 44px; }
+    .grade-view-switch button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 750; }
+    .grade-class-list { display: grid; grid-auto-rows: max-content; align-content: start; gap: 6px; max-height: min(50dvh, 460px); overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+    .grade-class-student { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; text-align: left; width: 100%; min-height: 64px; }
+    .grade-class-student .student-list-identity-first, .grade-class-student .student-list-identity-last { overflow: visible; text-overflow: clip; }
+    .grade-class-value { border-radius: 8px; padding: 6px 8px; background: var(--panel-2); font-weight: 750; font-size: 13px; }
+    @container (max-width: 700px) {
+      .note-area, .checklist-layout, .coursebook-grid, .tracking-details-grid { grid-template-columns: minmax(0, 1fr); }
+      .toolbar { grid-template-columns: repeat(auto-fit, minmax(min(130px, 100%), 1fr)); }
+      .mark-row { grid-template-columns: minmax(0, 1fr) 52px 64px; }
+      .checklist-headline { flex-wrap: wrap; }
+    }
+    @media screen and (max-width: 1100px) {
+      .topbar { flex-wrap: wrap; padding: 8px 12px; gap: 8px; }
+      .brand { min-width: 0; flex: 1 1 220px; }
+      .top-actions { min-width: 0; flex-wrap: wrap; }
+      .course-heading { min-width: 0; }
+      .workspace { --courses-width: 180px; --students-width: 190px; }
+    }
+    @media screen and (max-width: 1000px) {
+      .app { height: auto; min-height: 100dvh; overflow: visible; }
+      .workspace { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); overflow: visible; align-content: start; }
+      .workspace > .main { grid-column: 1 / -1; }
+      .workspace.home-view { grid-template-columns: minmax(0, 1fr); }
+      .workspace.home-view.courses-collapsed { grid-template-columns: minmax(0, 1fr); }
+      .panel { max-height: 260px; border-bottom: 1px solid var(--line); }
+      .panel-header { height: 60px; min-height: 60px; padding: 8px 12px; }
+      .panel.collapsed .panel-header { height: 60px; min-height: 60px; }
+      .panel.collapsed .panel-title-button { writing-mode: horizontal-tb; transform: none; }
+      .panel-body { flex: 1; }
+      #studentsPanel .panel-body { padding-bottom: 20px; }
+      .main { min-height: 70dvh; }
+      .main-content { overflow: visible; }
+      .table-wrap { max-height: 70dvh; flex: auto; }
+      .tracking-area, .note-area, .checklist-layout, .coursebook-area { grid-template-columns: minmax(0, 1fr); overflow: visible; }
+      .checklist-detail-panel > .inside { max-height: 65dvh; }
+      .tabs { height: auto; min-height: 64px; padding: 8px 12px; }
+      .tab { min-height: 44px; flex-basis: 110px; min-width: 110px; }
+    }
+    @media screen and (max-width: 600px) {
+      .workspace { grid-template-columns: minmax(0, 1fr); }
+      .panel { max-height: 220px; }
+      .workspace.home-view .panel { max-height: none; }
+      .workspace.home-view .panel-body { max-height: calc(100dvh - 200px); }
+      .brand-logo-full { max-width: min(180px, 48vw); height: 44px; }
+      .course-heading { flex-basis: 100%; order: 3; }
+      .top-actions { flex: 1 1 100%; justify-content: flex-start; gap: 6px; }
+      .toolbar, .modal .inside, .checklist-layout, .coursebook-grid { padding: 10px; }
+      .form-grid { grid-template-columns: minmax(0, 1fr); }
+      .form-grid .full { grid-column: auto; }
+      .mark-row { grid-template-columns: minmax(0, 1fr) 48px 60px; }
+      .modal-backdrop { padding: 8px; }
+      .modal { max-height: calc(100dvh - 16px); }
+      .modal header { padding: 10px; }
+      .grade-class-value { max-width: 76px; white-space: normal; }
+      .calendar-header { grid-template-columns: minmax(0, 1fr); }
+      input, select, textarea { font-size: 16px; }
+    }
+
     @media print {
       body {
         background: #fff;
@@ -4104,6 +4180,10 @@
         cameraDeviceIndex: -1,
         gradeDraftColumnId: null,
         gradeDraftStudentIndex: 0,
+        gradeEntryMode: "single",
+        gradeClassStudentOpen: false,
+        gradeOnlyMissing: false,
+        gradeClassScrollTop: 0,
         gradeSwipeStart: null,
         gradeSwipeSuppressClickUntil: 0,
         coursebookDragKey: null,
@@ -6482,7 +6562,9 @@
         renderCalendarBadge();
       }
 
-      function renderCourses(course) {
+      function renderCourses(...args) { return keepScrollWhile(() => renderCoursesContent(...args)); }
+
+      function renderCoursesContent(course) {
         $("#courseList").innerHTML = state.courses.map((item) => {
           const active = !view.homeOnly && item.id === course?.id ? " active" : "";
           return `
@@ -6496,7 +6578,9 @@
         }).join("") || `<div class="empty-state">Noch kein Kurs. Tippe oben auf +.</div>`;
       }
 
-      function renderStudents(course) {
+      function renderStudents(...args) { return keepScrollWhile(() => renderStudentsContent(...args)); }
+
+      function renderStudentsContent(course) {
         if (!course) {
           $("#studentCount").textContent = "0";
           $("#studentList").innerHTML = `<div class="empty-state">Bitte zuerst einen Kurs anlegen.</div>`;
@@ -6536,7 +6620,9 @@
         $("#tabsScrollRight")?.classList.toggle("visible", tabs.scrollLeft < maxScroll - 3);
       }
 
-      function renderGrades(course) {
+      function renderGrades(...args) { return keepScrollWhile(() => renderGradesContent(...args)); }
+
+      function renderGradesContent(course) {
         const privacyActive = Boolean(view.gradePrivacy);
         const revealedStudentId = view.gradePrivacyStudentId;
         const categories = gradeCategoriesForCourse(course).map((key) => ({
@@ -6754,7 +6840,9 @@
         `;
       }
 
-      function renderTrackingDetailsModal() {
+      function renderTrackingDetailsModal(...args) { return keepScrollWhile(() => renderTrackingDetailsModalContent(...args)); }
+
+      function renderTrackingDetailsModalContent() {
         const course = currentCourse();
         const labels = absenceLabels(course);
         const rows = trackingEntryRows(course);
@@ -6812,7 +6900,9 @@
         syncAbsenceEpoThumbs(course, values);
       }
 
-      function renderTracking(course, draft = null) {
+      function renderTracking(...args) { return keepScrollWhile(() => renderTrackingContent(...args)); }
+
+      function renderTrackingContent(course, draft = null) {
 
         $("#mainContent").innerHTML = `
           <div class="tracking-area">
@@ -6821,7 +6911,9 @@
         `;
       }
 
-      function renderSeating(course) {
+      function renderSeating(...args) { return keepScrollWhile(() => renderSeatingContent(...args)); }
+
+      function renderSeatingContent(course) {
         const plan = currentSeatingPlan(course);
         const seatingStudents = orderedSeatStudents(course);
         if (ensureSeatPositions(course, seatingStudents)) save();
@@ -6939,7 +7031,9 @@
         $("#coursebookFileViewerBody").innerHTML = "";
       }
 
-      function renderCoursebook(course) {
+      function renderCoursebook(...args) { return keepScrollWhile(() => renderCoursebookContent(...args)); }
+
+      function renderCoursebookContent(course) {
         const book = currentGroupBook(course);
         const birthdayWindow = birthdayWindowStudents(course);
         const upcomingRows = birthdayWindow.upcoming.map((item) => {
@@ -7050,7 +7144,9 @@
         `;
       }
 
-      function renderOverview(course) {
+      function renderOverview(...args) { return keepScrollWhile(() => renderOverviewContent(...args)); }
+
+      function renderOverviewContent(course) {
         const groupCourses = groupedCourses(course);
         const rows = course.students.map((student) => {
           const cells = groupCourses.map((groupCourse) => {
@@ -7094,7 +7190,9 @@
         `;
       }
 
-      function renderChecklists(course) {
+      function renderChecklists(...args) { return keepScrollWhile(() => renderChecklistsContent(...args)); }
+
+      function renderChecklistsContent(course) {
         const selectedInfo = currentChecklistInfo(course);
         const selected = selectedInfo?.list || null;
         const selectedCourse = selectedInfo?.course || null;
@@ -7398,7 +7496,9 @@
         $("#studentPhotoLightboxContent").innerHTML = "";
       }
 
-      function renderNotes(course) {
+      function renderNotes(...args) { return keepScrollWhile(() => renderNotesContent(...args)); }
+
+      function renderNotesContent(course) {
         const student = currentStudent(course);
         if (!student) {
           $("#mainContent").innerHTML = `<div class="empty-state">Bitte links einen Schüler hinzufügen.</div>`;
@@ -7504,7 +7604,9 @@
         `;
       }
 
-      function renderMain(course) {
+      function renderMain(...args) { return keepScrollWhile(() => renderMainContent(...args)); }
+
+      function renderMainContent(course) {
         renderTabs();
         if (!course) {
           $("#mainContent").innerHTML = `<div class="empty-state">Bitte links zuerst einen Kurs anlegen.</div>`;
@@ -7519,54 +7621,53 @@
         if (view.tab === "checklists") renderChecklists(course);
       }
 
+      let scrollRenderDepth = 0;
+      function scrollElementSelector(element) {
+        const parts = [];
+        while (element && element !== document.body) {
+          if (element.id) { parts.unshift("#" + CSS.escape(element.id)); break; }
+          const index = Array.prototype.indexOf.call(element.parentElement.children, element) + 1;
+          parts.unshift(element.localName + ":nth-child(" + index + ")");
+          element = element.parentElement;
+        }
+        return parts.join(" > ");
+      }
+
       function captureScrollPositions() {
-        const selectors = [
-          "#coursesPanel .panel-body",
-          "#studentsPanel .panel-body",
-          "#mainContent",
-          "#mainContent .table-wrap",
-          "#mainContent .note-area",
-          "#mainContent .tracking-form",
-          "#mainContent .tracking-list",
-          "#mainContent .tracking-details-panel",
-          "#mainContent .checklist-layout",
-          "#mainContent .coursebook-grid",
-          "#mainContent .seating-board"
-        ];
-        return selectors
-          .map((selector) => {
-            const element = $(selector);
-            return element ? { selector, top: element.scrollTop, left: element.scrollLeft } : null;
-          })
-          .filter(Boolean);
+        return {
+          context: [state.selectedCourseId, view.tab, view.selectedChecklistId, view.homeOnly].join("|"),
+          top: window.scrollY,
+          left: window.scrollX,
+          elements: Array.from(document.querySelectorAll("#workspace, #workspace *, .modal-backdrop:not(.hidden) .modal, .modal-backdrop:not(.hidden) .modal *"))
+            .filter((element) => element.scrollTop || element.scrollLeft)
+            .map((element) => ({ selector: scrollElementSelector(element), top: element.scrollTop, left: element.scrollLeft }))
+        };
       }
 
       function restoreScrollPositions(snapshot) {
-        if (!snapshot?.length) return;
+        const context = () => [state.selectedCourseId, view.tab, view.selectedChecklistId, view.homeOnly].join("|");
         const restore = () => {
-          snapshot.forEach((item) => {
-            const element = $(item.selector);
-            if (!element) return;
-            element.scrollTop = item.top;
-            element.scrollLeft = item.left;
+          if (snapshot.context !== context()) return;
+          snapshot.elements.forEach((item) => {
+            const element = document.querySelector(item.selector);
+            if (element) { element.scrollTop = item.top; element.scrollLeft = item.left; }
           });
+          window.scrollTo(snapshot.left, snapshot.top);
         };
-        const schedule = window.requestAnimationFrame
-          ? (fn) => window.requestAnimationFrame(fn)
-          : (fn) => window.setTimeout(fn, 0);
-        schedule(() => {
-          restore();
-          schedule(restore);
-        });
+        restore();
       }
 
       function keepScrollWhile(callback) {
+        if (scrollRenderDepth) return callback();
         const snapshot = captureScrollPositions();
-        callback();
-        restoreScrollPositions(snapshot);
+        scrollRenderDepth += 1;
+        try { return callback(); }
+        finally { scrollRenderDepth -= 1; restoreScrollPositions(snapshot); }
       }
 
-      function render() {
+      function render(...args) { return keepScrollWhile(() => renderContent(...args)); }
+
+      function renderContent() {
         state = normalizeData(state);
         const course = currentCourse();
         if (!course) {
@@ -8450,6 +8551,7 @@
 
       function openGradeModal() {
         const course = currentCourse();
+        resetGradeEntryView();
         $("#gradeModalHeading").textContent = "Leistung hinzufügen";
         $("#gradeModal").classList.remove("hidden");
         $("#gradeSetupForm").classList.remove("hidden");
@@ -8520,6 +8622,7 @@
         const column = currentCourse().gradeColumns.find((item) => item.id === columnId);
         if (!column) return;
         if (column.autoEpo || column.autoOral) return;
+        resetGradeEntryView();
         $("#gradeModalHeading").textContent = "Noten ändern";
         $("#gradeModal").classList.remove("hidden");
         $("#gradeSetupForm").classList.add("hidden");
@@ -8549,43 +8652,67 @@
         renderGradeWizardStep();
       }
 
+      function gradeHasEntry(column, studentId) {
+        return normalizeText(column.grades?.[studentId]) !== "";
+      }
+
+      function resetGradeEntryView() {
+        view.gradeEntryMode = "single";
+        view.gradeClassStudentOpen = false;
+        view.gradeOnlyMissing = false;
+        view.gradeClassScrollTop = 0;
+      }
+
       function renderGradeWizardStep() {
         const course = currentCourse();
         const column = course.gradeColumns.find((item) => item.id === view.gradeDraftColumnId);
         const step = $("#gradeEntryStep");
-        if (!column) {
-          closeGradeModal();
+        if (!column) { closeGradeModal(); return; }
+        const classMode = view.gradeEntryMode === "class";
+        const switcher = `
+          <div class="grade-view-switch" role="group" aria-label="Ansicht der Noteneingabe">
+            <button type="button" data-grade-view="single" aria-pressed="${!classMode}">Einzelansicht</button>
+            <button type="button" data-grade-view="class" aria-pressed="${classMode}">Klassenansicht</button>
+          </div>`;
+        const finish = '<button type="button" id="finishGradeWizardBtn">Fertig</button>';
+        if (classMode && !view.gradeClassStudentOpen) {
+          const students = course.students.filter((student) => !view.gradeOnlyMissing || !gradeHasEntry(column, student.id));
+          const missing = course.students.filter((student) => !gradeHasEntry(column, student.id)).length;
+          step.innerHTML = `${switcher}
+            <div class="muted">${escapeHtml(column.title)} · ${missing} von ${course.students.length} ohne Note</div>
+            <label class="checkbox-row"><input type="checkbox" id="gradeOnlyMissingToggle" ${view.gradeOnlyMissing ? "checked" : ""}>Nur Schüler ohne Note anzeigen</label>
+            <div id="gradeClassList" class="grade-class-list" aria-label="Schüler auswählen">
+              ${students.map((student) => `
+                <button type="button" class="grade-class-student" data-grade-student="${escapeHtml(student.id)}">
+                  ${studentListIdentityHtml(student, false)}
+                  <span class="grade-class-value">${gradeHasEntry(column, student.id) ? escapeHtml(column.grades[student.id]) : "Ohne Note"}</span>
+                </button>`).join("") || '<div class="empty-state">' + (course.students.length ? 'Alle Schüler haben eine Note.' : 'Es sind noch keine Schüler in diesem Kurs.') + '</div>'}
+            </div>${finish}`;
+          $("#gradeClassList").scrollTop = view.gradeClassScrollTop;
           return;
         }
-        if (!course.students.length) {
-          step.innerHTML = `
-            <div class="empty-state">Es sind noch keine Schüler in diesem Kurs.</div>
-            <button type="button" class="primary" id="finishGradeWizardBtn">Fertig</button>
-          `;
-          return;
-        }
-        if (view.gradeDraftStudentIndex >= course.students.length) {
-          step.innerHTML = `
-            <div class="empty-state">Alle Schüler sind eingetragen. Änderungen sind weiterhin direkt in der Tabelle möglich.</div>
-            <button type="button" class="primary" id="finishGradeWizardBtn">Fertig</button>
-          `;
-          renderMain(course);
+        if (!course.students.length || view.gradeDraftStudentIndex >= course.students.length) {
+          step.innerHTML = `${switcher}<div class="empty-state">${course.students.length ? "Alle Schüler sind durchlaufen. In der Klassenansicht kannst du Noten prüfen und ändern." : "Es sind noch keine Schüler in diesem Kurs."}</div>${finish}`;
           return;
         }
         const student = course.students[view.gradeDraftStudentIndex];
-        step.innerHTML = `
+        step.innerHTML = `${switcher}
           <div class="muted">${view.gradeDraftStudentIndex + 1} von ${course.students.length} · ${escapeHtml(column.title)}</div>
-          <div class="wizard-student-card">
-            ${studentListIdentityHtml(student, false)}
-          </div>
+          <div class="wizard-student-card">${studentListIdentityHtml(student, false)}</div>
+          <div class="muted">Aktuelle Note: ${gradeHasEntry(column, student.id) ? escapeHtml(column.grades[student.id]) : "noch keine"}</div>
           <div class="grade-choice-grid">
             ${gradeChoicesForCourse(course).map((grade) => `<button type="button" data-grade-choice="${escapeHtml(grade)}">${escapeHtml(grade)}</button>`).join("")}
           </div>
-          <button type="button" id="skipGradeWizardBtn">Weiter</button>
+          <button type="button" id="skipGradeWizardBtn">${classMode ? "Zurück zur Klassenliste" : "Weiter"}</button>
         `;
       }
 
       function skipWizardGrade() {
+        if (view.gradeEntryMode === "class") {
+          view.gradeClassStudentOpen = false;
+          renderGradeWizardStep();
+          return;
+        }
         const course = currentCourse();
         if (!course.gradeColumns.some((item) => item.id === view.gradeDraftColumnId)) return;
         if (view.gradeDraftStudentIndex < course.students.length) {
@@ -8595,6 +8722,7 @@
       }
 
       function navigateGradeWizard(delta) {
+        if (view.gradeEntryMode === "class") return;
         const course = currentCourse();
         if (!course.students.length || !course.gradeColumns.some((item) => item.id === view.gradeDraftColumnId)) return;
         view.gradeDraftStudentIndex = Math.max(0, Math.min(course.students.length, view.gradeDraftStudentIndex + delta));
@@ -8607,7 +8735,8 @@
         const student = course.students[view.gradeDraftStudentIndex];
         if (!column || !student) return;
         column.grades[student.id] = grade;
-        view.gradeDraftStudentIndex += 1;
+        if (view.gradeEntryMode === "class") view.gradeClassStudentOpen = false;
+        else view.gradeDraftStudentIndex += 1;
         save();
         renderGradeWizardStep();
       }
@@ -9207,6 +9336,13 @@
         if (studentButton) showStudentMenu(studentButton.dataset.studentId, event.clientX, event.clientY);
       });
 
+      $("#gradeEntryStep").addEventListener("change", (event) => {
+        if (event.target.id !== "gradeOnlyMissingToggle") return;
+        view.gradeOnlyMissing = event.target.checked;
+        view.gradeClassScrollTop = 0;
+        renderGradeWizardStep();
+      });
+
       $("#gradeEntryStep").addEventListener("pointerdown", (event) => {
         if ($("#gradeEntryStep").classList.contains("hidden")) return;
         view.gradeSwipeStart = { x: event.clientX, y: event.clientY, pointerId: event.pointerId };
@@ -9512,6 +9648,27 @@
           setTimeout(() => {
             if (!$("#nameGameModal").classList.contains("hidden")) renderNameQuestion();
           }, 950);
+          return;
+        }
+
+        const gradeView = event.target.closest("[data-grade-view]");
+        if (gradeView) {
+          const list = $("#gradeClassList");
+          if (list) view.gradeClassScrollTop = list.scrollTop;
+          view.gradeEntryMode = gradeView.dataset.gradeView;
+          view.gradeClassStudentOpen = false;
+          view.gradeDraftStudentIndex = Math.min(view.gradeDraftStudentIndex, Math.max(0, currentCourse().students.length - 1));
+          renderGradeWizardStep();
+          return;
+        }
+        const gradeStudent = event.target.closest("[data-grade-student]");
+        if (gradeStudent) {
+          const index = currentCourse().students.findIndex((student) => student.id === gradeStudent.dataset.gradeStudent);
+          if (index < 0) return;
+          view.gradeClassScrollTop = $("#gradeClassList")?.scrollTop || 0;
+          view.gradeDraftStudentIndex = index;
+          view.gradeClassStudentOpen = true;
+          renderGradeWizardStep();
           return;
         }
 
