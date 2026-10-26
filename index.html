@@ -3402,6 +3402,23 @@
       input, select, textarea { font-size: 16px; }
     }
 
+    .grade-info-modal { width: min(680px, 100%); }
+    .grade-statistics h3, .grade-statistics h4, .grade-info-form-heading { margin: 0; }
+    .grade-statistics h4 { margin-top: 18px; margin-bottom: 10px; }
+    .grade-statistics-title { margin: 6px 0 14px; overflow-wrap: anywhere; }
+    .grade-statistics-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+    .grade-statistics-summary > div { display: grid; align-content: start; gap: 6px; padding: 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-2); }
+    .grade-statistics-summary strong { font-size: 24px; color: var(--accent); }
+    .grade-statistics-summary span { font-size: 13px; color: var(--muted); }
+    .grade-distribution { display: grid; gap: 7px; }
+    .grade-distribution-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) 30px; gap: 10px; align-items: center; min-height: 24px; }
+    .grade-distribution-label, .grade-distribution-row > strong { text-align: center; font-size: 14px; }
+    .grade-distribution-track { height: 18px; border-radius: 4px; background: var(--panel-2); overflow: hidden; }
+    .grade-distribution-track > span { display: block; height: 100%; background: var(--accent); border-radius: inherit; }
+    .grade-statistics-help { margin: 12px 0 0; font-size: 12px; line-height: 1.5; }
+    .grade-statistics-warning { color: var(--danger); }
+    #gradeInfoForm { border-top: 1px solid var(--line); }
+
     @media print {
       body {
         background: #fff;
@@ -3908,12 +3925,14 @@
       </section>
     </div>
     <div id="gradeInfoModal" class="modal-backdrop hidden">
-      <section class="modal">
+      <section class="modal grade-info-modal" role="dialog" aria-modal="true" aria-labelledby="gradeInfoHeading">
         <header>
-          <span>Leistung bearbeiten</span>
+          <span id="gradeInfoHeading">Leistungsinfos und Klassenauswertung</span>
           <button type="button" class="icon" id="closeGradeInfoModalBtn">x</button>
         </header>
+        <section class="inside grade-statistics" id="gradeStatistics" aria-labelledby="gradeStatisticsHeading"></section>
         <form class="inside form-grid" id="gradeInfoForm">
+          <h3 class="full grade-info-form-heading">Leistung bearbeiten</h3>
           <label>
             Titel
             <input id="gradeInfoTitle" required autocomplete="off">
@@ -8584,6 +8603,55 @@
         render();
       }
 
+      function gradeStatisticsForColumn(course, column) {
+        const upperSchool = isUpperSchoolCourse(course);
+        const distribution = Array.from({ length: upperSchool ? 16 : 6 }, (_, index) => ({ grade: upperSchool ? 15 - index : index + 1, count: 0 }));
+        let sum = 0;
+        let graded = 0;
+        let missing = 0;
+        let special = 0;
+        let invalid = 0;
+        course.students.forEach((student) => {
+          const raw = normalizeText(column.grades?.[student.id]);
+          if (!raw || raw === "/") { missing += 1; return; }
+          if (["e", "a"].includes(raw.toLowerCase())) { special += 1; return; }
+          const value = parseGradeForCourse(course, raw);
+          if (value == null || !Number.isFinite(value)) { invalid += 1; return; }
+          sum += value;
+          graded += 1;
+          const bucket = distribution.find((item) => item.grade === Math.round(value));
+          if (bucket) bucket.count += 1;
+        });
+        return { upperSchool, distribution, graded, missing, special, invalid, total: course.students.length, average: graded ? sum / graded : null };
+      }
+
+      function renderGradeStatistics(course, column) {
+        const stats = gradeStatisticsForColumn(course, column);
+        const maxCount = Math.max(1, ...stats.distribution.map((item) => item.count));
+        const unit = stats.upperSchool ? "Punkte" : "Note";
+        $("#gradeStatistics").innerHTML = `
+          <h3 id="gradeStatisticsHeading">Klassenauswertung</h3>
+          <p class="muted grade-statistics-title">${escapeHtml(column.title || "Leistung")} · ${stats.total} Schüler</p>
+          <div class="grade-statistics-summary">
+            <div><strong>${stats.average == null ? "–" : decimal(stats.average)}</strong><span>Durchschnitt (${unit})</span></div>
+            <div><strong>${stats.graded} / ${stats.total}</strong><span>Benotet</span></div>
+            <div><strong>${stats.missing}</strong><span>Noch ohne Eintrag</span></div>
+          </div>
+          ${stats.special ? `<p class="muted">Weitere Einträge: ${stats.special} mit „e“ oder „a“.</p>` : ""}
+          ${stats.invalid ? `<p class="grade-statistics-warning">${stats.invalid} ${stats.invalid === 1 ? "ungültiger Noteneintrag" : "ungültige Noteneinträge"} – bitte prüfen.</p>` : ""}
+          ${!stats.graded ? '<p class="muted">Noch keine auswertbaren Noten vorhanden.</p>' : ''}
+          <h4>${stats.upperSchool ? "Punkteverteilung" : "Notenverteilung"}</h4>
+          <div class="grade-distribution" role="list" aria-label="${stats.upperSchool ? "Punkteverteilung" : "Notenverteilung"}">
+            ${stats.distribution.map((item) => `<div class="grade-distribution-row" role="listitem" aria-label="${unit} ${item.grade}: ${item.count} Schüler">
+              <span class="grade-distribution-label">${item.grade}</span>
+              <span class="grade-distribution-track" aria-hidden="true"><span style="width:${item.count / maxCount * 100}%"></span></span>
+              <strong>${item.count}</strong>
+            </div>`).join("")}
+          </div>
+          <p class="muted grade-statistics-help">Der Durchschnitt berücksichtigt nur gültige Noten. Leere Einträge, „/“, „e“ und „a“ zählen nicht mit. ${stats.upperSchool ? "Die Verteilung fasst Werte auf ganze Punkte gerundet zusammen." : "Plus/Minus wird wie in der Notenübersicht berücksichtigt. Die Verteilung fasst Werte auf ganze Noten gerundet zusammen."}</p>
+        `;
+      }
+
       function openGradeInfoModal(columnId) {
         const course = currentCourse();
         const column = course.gradeColumns.find((item) => item.id === columnId);
@@ -8595,8 +8663,10 @@
         $("#gradeInfoDate").value = column.date || todayIso();
         $("#gradeInfoHalf").value = String(column.half || "1");
         $("#gradeInfoWeight").value = String(column.weight || 1);
+        renderGradeStatistics(course, column);
         $("#gradeInfoModal").classList.remove("hidden");
-        $("#gradeInfoTitle").focus();
+        $("#gradeInfoModal .modal").scrollTop = 0;
+        $("#closeGradeInfoModalBtn").focus({ preventScroll: true });
       }
 
       function closeGradeInfoModal() {
