@@ -3402,6 +3402,20 @@
       input, select, textarea { font-size: 16px; }
     }
 
+    .note-main-stack, .note-side-stack { min-width: 0; }
+    .note-area .plain-section {
+      overflow-x: auto;
+      overflow-y: hidden;
+      touch-action: pan-x pan-y;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: var(--line-strong) transparent;
+    }
+    .note-area .plain-section > .inside { min-width: min-content; }
+    .note-area .plain-section::-webkit-scrollbar { display: block; width: auto; height: 8px; }
+    .note-area .plain-section::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 4px; }
+    .note-area .plain-section:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
     .grade-info-modal { width: min(680px, 100%); }
     .grade-statistics h3, .grade-statistics h4, .grade-info-form-heading { margin: 0; }
     .grade-statistics h4 { margin-top: 18px; margin-bottom: 10px; }
@@ -7515,7 +7529,15 @@
         $("#studentPhotoLightboxContent").innerHTML = "";
       }
 
-      function renderNotes(...args) { return keepScrollWhile(() => renderNotesContent(...args)); }
+      function renderNotes(...args) {
+        return keepScrollWhile(() => {
+          renderNotesContent(...args);
+          $$("#mainContent .note-area .plain-section").forEach((tile) => {
+            tile.tabIndex = 0;
+            tile.setAttribute("aria-label", tile.querySelector("header")?.textContent.trim() || "Schülerübersicht");
+          });
+        });
+      }
 
       function renderNotesContent(course) {
         const student = currentStudent(course);
