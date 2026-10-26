@@ -3440,6 +3440,44 @@
     .grade-table th.grade-section-avg,
     .grade-table th.grade-total-avg { color: var(--text); border-bottom-color: #d9b45b; }
 
+    .workspace > .panel { position: relative; }
+    .column-resizer {
+      position: absolute;
+      z-index: 10;
+      top: 0;
+      bottom: 0;
+      right: -7px;
+      width: 14px;
+      cursor: col-resize;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .column-resizer::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 5px;
+      width: 4px;
+      background: var(--line-strong);
+      opacity: .55;
+      transition: opacity .15s, background .15s;
+    }
+    .column-resizer:hover::after, .column-resizer:focus-visible::after,
+    .column-resizer.resizing::after { background: var(--accent); opacity: 1; }
+    .column-resizer:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+    body.resizing-columns, body.resizing-columns * { cursor: col-resize !important; user-select: none !important; -webkit-user-select: none !important; }
+    .workspace.home-view .column-resizer,
+    .workspace.courses-collapsed #coursesResizer,
+    .workspace.students-collapsed .column-resizer { display: none; }
+    @media screen and (min-width: 1001px) {
+      .workspace:not(.courses-collapsed) { --courses-width: var(--user-courses-width, clamp(180px, 18vw, 270px)); }
+      .workspace:not(.students-collapsed) { --students-width: var(--user-students-width, clamp(190px, 19vw, 252px)); }
+    }
+    @media screen and (max-width: 1000px) { .column-resizer { display: none; } }
+    @media print { .column-resizer { display: none; } }
+
     .grade-info-modal { width: min(680px, 100%); }
     .grade-statistics h3, .grade-statistics h4, .grade-info-form-heading { margin: 0; }
     .grade-statistics h4 { margin-top: 18px; margin-bottom: 10px; }
@@ -3724,6 +3762,7 @@
         <div class="panel-body">
           <div id="courseList" class="stack"></div>
         </div>
+        <div class="column-resizer" id="coursesResizer" role="separator" aria-orientation="vertical" aria-label="Breite von Kursen und Schülern ändern" aria-controls="coursesPanel studentsPanel" tabindex="0" title="Ziehen zum Ändern der Spaltenbreite · Doppelklick zum Zurücksetzen"></div>
       </aside>
 
       <aside class="panel students" id="studentsPanel">
@@ -3747,6 +3786,7 @@
           </div>
           <div id="studentList" class="student-list"></div>
         </div>
+        <div class="column-resizer" id="studentsResizer" role="separator" aria-orientation="vertical" aria-label="Breite von Schülern und Arbeitsbereich ändern" aria-controls="studentsPanel mainContent" tabindex="0" title="Ziehen zum Ändern der Spaltenbreite · Doppelklick zum Zurücksetzen"></div>
       </aside>
 
       <main class="main">
@@ -6492,6 +6532,7 @@
 
       function applyWorkspaceMode() {
         $("#workspace").classList.toggle("home-view", view.homeOnly);
+        updateWorkspaceColumnWidths();
       }
 
       function renderHeader(course) {
@@ -7571,6 +7612,107 @@
         if (view.tab === "notes") renderNotes(course);
         if (view.tab === "overview") renderOverview(course);
         if (view.tab === "checklists") renderChecklists(course);
+      }
+
+      const COLUMN_WIDTHS_KEY = "schulportal-column-widths-v1";
+      let preferredColumnWidths = null;
+      let columnResize = null;
+      try {
+        const saved = JSON.parse(localStorage.getItem(COLUMN_WIDTHS_KEY) || "null");
+        if (saved && Number.isFinite(saved.courses) && Number.isFinite(saved.students)) {
+          preferredColumnWidths = { courses: Math.max(140, saved.courses), students: Math.max(160, saved.students) };
+        }
+      } catch { /* Use the responsive defaults if settings are unavailable. */ }
+
+      function updateWorkspaceColumnWidths() {
+        const workspace = $("#workspace");
+        if (window.innerWidth <= 1000 || workspace.classList.contains("home-view")) return;
+        const coursesCollapsed = workspace.classList.contains("courses-collapsed");
+        const studentsCollapsed = workspace.classList.contains("students-collapsed");
+        const minCourses = coursesCollapsed ? 58 : 140;
+        const minStudents = studentsCollapsed ? 58 : 160;
+        let courses = coursesCollapsed ? 58 : (preferredColumnWidths?.courses || Math.max(180, Math.min(270, innerWidth * .18)));
+        let students = studentsCollapsed ? 58 : (preferredColumnWidths?.students || Math.max(190, Math.min(252, innerWidth * .19)));
+        const available = Math.max(minCourses + minStudents, workspace.clientWidth - 320);
+        if (courses + students > available) {
+          const extra = Math.max(1, courses + students - minCourses - minStudents);
+          const space = available - minCourses - minStudents;
+          courses = minCourses + (courses - minCourses) / extra * space;
+          students = minStudents + (students - minStudents) / extra * space;
+        }
+        workspace.style.setProperty("--user-courses-width", courses + "px");
+        workspace.style.setProperty("--user-students-width", students + "px");
+        const first = $("#coursesResizer"), second = $("#studentsResizer");
+        first.setAttribute("aria-valuemin", "140");
+        first.setAttribute("aria-valuemax", String(Math.max(140, Math.floor(courses + students - 160))));
+        first.setAttribute("aria-valuenow", String(Math.round(courses)));
+        first.setAttribute("aria-valuetext", Math.round(courses) + " Pixel Kursbreite");
+        second.setAttribute("aria-valuemin", "160");
+        second.setAttribute("aria-valuemax", String(Math.max(160, Math.floor(workspace.clientWidth - courses - 320))));
+        second.setAttribute("aria-valuenow", String(Math.round(students)));
+        second.setAttribute("aria-valuetext", Math.round(students) + " Pixel Schülerbreite");
+        updateTabScrollHints();
+      }
+
+      function saveWorkspaceColumnWidths() {
+        try {
+          if (preferredColumnWidths) localStorage.setItem(COLUMN_WIDTHS_KEY, JSON.stringify(preferredColumnWidths));
+          else localStorage.removeItem(COLUMN_WIDTHS_KEY);
+        } catch { /* Resizing still works when browser storage is unavailable. */ }
+      }
+
+      function resizeWorkspaceColumns(handle, courses, students, delta) {
+        if (handle.id === "coursesResizer") {
+          const width = Math.max(140, Math.min(courses + students - 160, courses + delta));
+          preferredColumnWidths = { courses: width, students: courses + students - width };
+        } else {
+          const max = Math.max(160, $("#workspace").clientWidth - courses - 320);
+          preferredColumnWidths = { courses: $("#workspace").classList.contains("courses-collapsed") ? (preferredColumnWidths?.courses || 270) : courses, students: Math.max(160, Math.min(max, students + delta)) };
+        }
+        updateWorkspaceColumnWidths();
+      }
+
+      function finishColumnResize(cancel = false) {
+        if (!columnResize) return;
+        const drag = columnResize;
+        columnResize = null;
+        if (cancel) preferredColumnWidths = drag.previous;
+        drag.handle.classList.remove("resizing");
+        document.body.classList.remove("resizing-columns");
+        if (drag.handle.hasPointerCapture(drag.pointerId)) drag.handle.releasePointerCapture(drag.pointerId);
+        updateWorkspaceColumnWidths();
+        if (!cancel) saveWorkspaceColumnWidths();
+      }
+
+      function setupWorkspaceColumnResize() {
+        [$("#coursesResizer"), $("#studentsResizer")].forEach((handle) => {
+          handle.addEventListener("pointerdown", (event) => {
+            if (event.button !== 0 || !event.isPrimary || window.innerWidth <= 1000) return;
+            event.preventDefault(); event.stopPropagation();
+            columnResize = { handle, pointerId: event.pointerId, x: event.clientX, courses: $("#coursesPanel").getBoundingClientRect().width, students: $("#studentsPanel").getBoundingClientRect().width, previous: preferredColumnWidths ? { ...preferredColumnWidths } : null };
+            handle.setPointerCapture(event.pointerId);
+            handle.classList.add("resizing"); document.body.classList.add("resizing-columns");
+          });
+          handle.addEventListener("pointermove", (event) => {
+            if (!columnResize || event.pointerId !== columnResize.pointerId) return;
+            event.preventDefault();
+            resizeWorkspaceColumns(handle, columnResize.courses, columnResize.students, event.clientX - columnResize.x);
+          });
+          handle.addEventListener("pointerup", (event) => { if (event.pointerId === columnResize?.pointerId) finishColumnResize(); });
+          handle.addEventListener("pointercancel", () => finishColumnResize(true));
+          handle.addEventListener("lostpointercapture", () => finishColumnResize(true));
+          handle.addEventListener("dblclick", () => { preferredColumnWidths = null; updateWorkspaceColumnWidths(); saveWorkspaceColumnWidths(); });
+          handle.addEventListener("keydown", (event) => {
+            if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+            event.preventDefault();
+            const courses = $("#coursesPanel").getBoundingClientRect().width;
+            const students = $("#studentsPanel").getBoundingClientRect().width;
+            const delta = event.key === "Home" ? -100000 : event.key === "End" ? 100000 : (event.key === "ArrowLeft" ? -1 : 1) * (event.shiftKey ? 50 : 10);
+            resizeWorkspaceColumns(handle, courses, students, delta); saveWorkspaceColumnWidths();
+          });
+        });
+        document.addEventListener("keydown", (event) => { if (event.key === "Escape" && columnResize) { event.preventDefault(); finishColumnResize(true); } });
+        window.addEventListener("resize", () => { finishColumnResize(true); updateWorkspaceColumnWidths(); }, { passive: true });
       }
 
       let scrollRenderDepth = 0;
@@ -10177,11 +10319,13 @@
       function toggleCoursesPanel() {
         $("#workspace").classList.toggle("courses-collapsed");
         $("#coursesPanel").classList.toggle("collapsed");
+        updateWorkspaceColumnWidths();
       }
 
       function toggleStudentsPanel() {
         $("#workspace").classList.toggle("students-collapsed");
         $("#studentsPanel").classList.toggle("collapsed");
+        updateWorkspaceColumnWidths();
       }
 
       $("#coursesHeader").addEventListener("click", (event) => {
@@ -10661,6 +10805,7 @@
         });
       }
 
+      setupWorkspaceColumnResize();
       strengthenDeviceStorage();
 
       setupLockScreen();
