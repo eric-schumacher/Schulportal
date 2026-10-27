@@ -3483,6 +3483,25 @@
     @media screen and (max-width: 1000px) { .column-resizer { display: none; } }
     @media print { .column-resizer { display: none; } }
 
+    #courseList .course-item {
+      height: 64px;
+      min-height: 64px;
+      max-height: 64px;
+      grid-template-columns: minmax(0, 1fr) 38px;
+    }
+    #studentList .student-item { height: 66px; min-height: 66px; max-height: 66px; }
+    .sidebar-course-label, .sidebar-student-label { min-width: 0; overflow: hidden; }
+    .sidebar-course-label { max-height: 38px; }
+    .sidebar-student-label { height: 48px; display: flex; flex-direction: column; justify-content: center; }
+    #courseList .course-title { display: block; font-size: calc(18px * var(--label-scale, 1)); line-height: 1.1; overflow-wrap: anywhere; }
+    #studentList .student-name,
+    #studentList .student-last-name { display: block; line-height: 1.1; overflow-wrap: anywhere; }
+    #studentList .student-name { font-size: calc(17px * var(--label-scale, 1)); }
+    #studentList .student-last-name { font-size: calc(15px * var(--label-scale, 1)); margin-top: 2px; }
+    .sidebar-label-truncated .course-title,
+    .sidebar-label-truncated .student-name,
+    .sidebar-label-truncated .student-last-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
     .grade-info-modal { width: min(680px, 100%); }
     .grade-statistics h3, .grade-statistics h4, .grade-info-form-heading { margin: 0; }
     .grade-statistics h4 { margin-top: 18px; margin-bottom: 10px; }
@@ -6582,14 +6601,14 @@
         renderCalendarBadge();
       }
 
-      function renderCourses(...args) { return keepScrollWhile(() => renderCoursesContent(...args)); }
+      function renderCourses(...args) { return keepScrollWhile(() => { renderCoursesContent(...args); scheduleSidebarLabelFit(); }); }
 
       function renderCoursesContent(course) {
         $("#courseList").innerHTML = state.courses.map((item) => {
           const active = !view.homeOnly && item.id === course?.id ? " active" : "";
           return `
             <div class="course-item${active}" data-course-id="${escapeHtml(item.id)}" style="--course-color:${escapeHtml(item.color || "#0b6d8d")}" role="button" tabindex="0">
-              <span>
+              <span class="sidebar-course-label" title="${escapeHtml(item.name)}">
                 <span class="course-title">${escapeHtml(item.name)}</span>
               </span>
               <button type="button" class="item-menu-button" data-open-course-menu="${escapeHtml(item.id)}" title="Kursmenü"><span>...</span></button>
@@ -6598,7 +6617,7 @@
         }).join("") || `<div class="empty-state">Noch kein Kurs. Tippe oben auf +.</div>`;
       }
 
-      function renderStudents(...args) { return keepScrollWhile(() => renderStudentsContent(...args)); }
+      function renderStudents(...args) { return keepScrollWhile(() => { renderStudentsContent(...args); scheduleSidebarLabelFit(); }); }
 
       function renderStudentsContent(course) {
         if (!course) {
@@ -6617,9 +6636,9 @@
           return `
             <div class="student-item${active}" data-student-id="${escapeHtml(student.id)}" role="button" tabindex="0">
               <span class="avatar">${student.photo ? `<img src="${escapeHtml(student.photo)}" alt="">` : escapeHtml(initials(student.name))}</span>
-              <span>
+              <span class="sidebar-student-label" title="${escapeHtml(student.name)}">
                 <span class="student-name">${escapeHtml(student.firstName || student.name)}${isBirthdayToday(sharedBirthdate) ? ` <span class="birthday-line">· Geburtstag</span>` : ""}</span>
-                <span class="muted" style="display:block; font-size:15px;">${escapeHtml(student.lastName || "")}</span>
+                <span class="student-last-name muted">${escapeHtml(student.lastName || "")}</span>
               </span>
               <button type="button" class="item-menu-button" data-open-student-menu="${escapeHtml(student.id)}" title="Schülermenü"><span>...</span></button>
             </div>
@@ -7747,6 +7766,47 @@
         });
         document.addEventListener("keydown", (event) => { if (event.key === "Escape" && columnResize) { event.preventDefault(); finishColumnResize(true); } });
         window.addEventListener("resize", () => { finishColumnResize(true); updateWorkspaceColumnWidths(); }, { passive: true });
+      }
+
+      let sidebarLabelFitFrame = 0;
+      function fitSidebarLabels() {
+        sidebarLabelFitFrame = 0;
+        $$(".sidebar-course-label, .sidebar-student-label").forEach((label) => {
+          if (!label.clientWidth || !label.getClientRects().length) return;
+          label.classList.remove("sidebar-label-truncated");
+          const courseLabel = label.classList.contains("sidebar-course-label");
+          const availableHeight = courseLabel ? 38 : 48;
+          const fits = () => {
+            const children = Array.from(label.children);
+            const height = children.reduce((sum, child) => sum + child.getBoundingClientRect().height + (parseFloat(getComputedStyle(child).marginTop) || 0), 0);
+            return height <= availableHeight + .5 && children.every((child) => child.scrollWidth <= label.clientWidth + 1);
+          };
+          label.style.setProperty("--label-scale", "1");
+          if (fits()) return;
+          let low = .55, high = 1;
+          label.style.setProperty("--label-scale", String(low));
+          if (!fits()) { label.classList.add("sidebar-label-truncated"); return; }
+          for (let step = 0; step < 7; step += 1) {
+            const middle = (low + high) / 2;
+            label.style.setProperty("--label-scale", String(middle));
+            if (fits()) low = middle; else high = middle;
+          }
+          label.style.setProperty("--label-scale", String(low));
+        });
+      }
+
+      function scheduleSidebarLabelFit() {
+        if (!sidebarLabelFitFrame) sidebarLabelFitFrame = requestAnimationFrame(fitSidebarLabels);
+      }
+
+      function setupSidebarLabelFit() {
+        if (typeof ResizeObserver === "function") {
+          const observer = new ResizeObserver(scheduleSidebarLabelFit);
+          observer.observe($("#coursesPanel"));
+          observer.observe($("#studentsPanel"));
+        }
+        window.addEventListener("resize", scheduleSidebarLabelFit, { passive: true });
+        document.fonts?.ready.then(scheduleSidebarLabelFit);
       }
 
       let scrollRenderDepth = 0;
@@ -10834,6 +10894,7 @@
         });
       }
 
+      setupSidebarLabelFit();
       setupWorkspaceColumnResize();
       strengthenDeviceStorage();
 
