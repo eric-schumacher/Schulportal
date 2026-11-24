@@ -3027,6 +3027,25 @@
       font-weight: 760;
     }
 
+    /* A resting pointer must not look like a saved grade after advancing. */
+    .grade-choice-grid button:hover {
+      border-color: var(--line);
+      background: var(--panel);
+      box-shadow: none;
+    }
+
+    .grade-choice-grid button[aria-pressed="true"] {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+      box-shadow: inset 0 0 0 1px var(--accent);
+    }
+
+    .grade-choice-grid button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+
     .wizard-student-card {
       min-width: 0;
       padding: 12px;
@@ -8938,7 +8957,7 @@
           <div class="wizard-student-card">${studentListIdentityHtml(student, false)}</div>
           <div class="muted">Aktuelle Note: ${gradeHasEntry(column, student.id) ? escapeHtml(column.grades[student.id]) : "noch keine"}</div>
           <div class="grade-choice-grid">
-            ${gradeChoicesForCourse(course).map((grade) => `<button type="button" data-grade-choice="${escapeHtml(grade)}">${escapeHtml(grade)}</button>`).join("")}
+            ${gradeChoicesForCourse(course).map((grade) => `<button type="button" data-grade-choice="${escapeHtml(grade)}" aria-pressed="${normalizeText(column.grades?.[student.id]) === grade}">${escapeHtml(grade)}</button>`).join("")}
           </div>
           <button type="button" id="skipGradeWizardBtn">${classMode ? "Zurück zur Klassenliste" : "Weiter"}</button>
         `;
